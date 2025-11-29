@@ -14,7 +14,7 @@ import {
   Error,
 } from "./ui";
 import { Button } from "./ui";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { motion } from "framer-motion";
 
 const SessionHeader = styled(DashboardCard)`
@@ -61,6 +61,17 @@ const TranscriptTitle = styled.h3`
   margin: 0 0 ${(props) => props.theme.spacing.md} 0;
 `;
 
+const statusPulse = keyframes`
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+`;
+
 const StatusBar = styled.div`
   display: flex;
   justify-content: space-between;
@@ -68,6 +79,34 @@ const StatusBar = styled.div`
   font-size: 0.875rem;
   color: ${(props) => props.theme.colors.gray[500]};
   margin-top: ${(props) => props.theme.spacing.md};
+`;
+
+const StatusIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: ${(props) => {
+    if (props.isRecording) return props.theme.colors.primary;
+    if (props.isReading) return props.theme.colors.info;
+    return props.theme.colors.gray[500];
+  }};
+  transition: color 0.3s ease;
+  font-weight: 500;
+`;
+
+const StatusDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${(props) => {
+    if (props.isRecording) return props.theme.colors.primary;
+    if (props.isReading) return props.theme.colors.info;
+    return props.theme.colors.gray[500];
+  }};
+  animation: ${(props) =>
+      props.isRecording || props.isReading ? statusPulse : "none"}
+    1.5s ease-in-out infinite;
+  transition: background-color 0.3s ease;
 `;
 
 const StatusCard = styled(DashboardCard)`
@@ -350,6 +389,7 @@ const InterviewSession = () => {
               question={currentQuestion}
               questionNumber={currentQuestionIndex + 1}
               totalQuestions={totalQuestions}
+              isReading={isReadingQuestion}
             />
           </div>
         )}
@@ -363,14 +403,25 @@ const InterviewSession = () => {
             />
           </CardBody>
           <StatusBar>
-            <span>
-              {isRecording
-                ? "Listening..."
-                : isReadingQuestion
-                ? "Reading question..."
-                : "Waiting for audio..."}
+            <StatusIndicator
+              isRecording={isRecording}
+              isReading={isReadingQuestion}
+            >
+              <StatusDot
+                isRecording={isRecording}
+                isReading={isReadingQuestion}
+              />
+              <span>
+                {isRecording
+                  ? "Listening..."
+                  : isReadingQuestion
+                  ? "Reading question..."
+                  : "Waiting for audio..."}
+              </span>
+            </StatusIndicator>
+            <span style={{ fontSize: "0.75rem", color: "#adb5bd" }}>
+              VAD: Server-side (Realtime API)
             </span>
-            <span>VAD: Server-side (Realtime API)</span>
           </StatusBar>
         </TranscriptCard>
 
