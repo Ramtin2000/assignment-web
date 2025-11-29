@@ -13,6 +13,7 @@ export function useRealtimeInterview() {
   const [canEndInterview, setCanEndInterview] = useState(false);
   const [liveUserSpeech, setLiveUserSpeech] = useState(""); // Live voice-to-text
   const [liveAssistantSpeech, setLiveAssistantSpeech] = useState(""); // Live text-to-speech
+  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false); // Track when assistant is speaking
 
   const sessionRef = useRef(null);
   const agentRef = useRef(null);
@@ -22,6 +23,7 @@ export function useRealtimeInterview() {
   const lastEvaluationTimeRef = useRef(null); // Track when last evaluation completed
   const currentResponseIdRef = useRef(null); // Track current response ID for message boundaries
   const currentItemIdRef = useRef(null); // Track current item ID for message boundaries
+  const isAssistantSpeakingRef = useRef(false); // Track when assistant is speaking (for blocking user input)
 
   // Cleanup function
   useEffect(() => {
@@ -291,6 +293,10 @@ export function useRealtimeInterview() {
         model: "gpt-realtime-mini-2025-10-06",
       });
 
+      console.log(
+        "[RealtimeSession] Session created - user transcription should be enabled by default"
+      );
+
       sessionRef.current = realtimeSession;
 
       // Set up event listeners with debugging and fallbacks
@@ -396,6 +402,30 @@ export function useRealtimeInterview() {
                 lastMessage.role !== role ||
                 lastMessage.final
               ) {
+                // Ensure we don't overwrite an incomplete user message
+                // If last message is user and not final, keep it and add assistant message after
+                if (
+                  lastMessage &&
+                  lastMessage.role === "user" &&
+                  !lastMessage.final
+                ) {
+                  console.log(
+                    "[Transport] User message in progress, keeping it and adding assistant message"
+                  );
+                  // Finalize the user message first, then add assistant message
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...lastMessage, final: true },
+                    {
+                      role,
+                      text: newText,
+                      final: false,
+                      responseId,
+                      itemId,
+                    },
+                  ];
+                }
+
                 return [
                   ...prev,
                   {
@@ -407,14 +437,31 @@ export function useRealtimeInterview() {
                   },
                 ];
               } else {
-                // Update existing message
-                return [
-                  ...prev.slice(0, -1),
-                  {
-                    ...lastMessage,
-                    text: newText,
-                  },
-                ];
+                // Update existing message - only if it's an assistant message
+                if (lastMessage.role === "assistant") {
+                  return [
+                    ...prev.slice(0, -1),
+                    {
+                      ...lastMessage,
+                      text: newText,
+                    },
+                  ];
+                } else {
+                  // Don't overwrite user messages
+                  console.warn(
+                    "[Transport] Attempted to update non-assistant message, adding new message instead"
+                  );
+                  return [
+                    ...prev,
+                    {
+                      role,
+                      text: newText,
+                      final: false,
+                      responseId,
+                      itemId,
+                    },
+                  ];
+                }
               }
             });
           } else if (delta && !responseId) {
@@ -441,48 +488,95 @@ export function useRealtimeInterview() {
             "[Transport] input_audio_buffer.transcript.delta event:",
             event
           );
-          if (event.delta) {
-            // Update live user speech
-            setLiveUserSpeech((prev) => {
-              const updated = prev + event.delta;
-              console.log(
-                "[Transport] Updated liveUserSpeech from input:",
-                updated.substring(0, 50)
-              );
-              return updated;
-            });
 
-            // Also add to transcript
-            setTranscript((prev) => {
-              const lastMessage = prev[prev.length - 1];
-              const role = "user";
-
-              // Check if we need a new message (different from last or last was assistant)
-              if (
-                !lastMessage ||
-                lastMessage.role !== role ||
-                lastMessage.final
-              ) {
-                return [
-                  ...prev,
-                  {
-                    role,
-                    text: event.delta,
-                    final: false,
-                  },
-                ];
-              } else {
-                // Continue existing user message
-                return [
-                  ...prev.slice(0, -1),
-                  {
-                    ...lastMessage,
-                    text: lastMessage.text + event.delta,
-                  },
-                ];
-              }
-            });
+          // Validate event structure
+          if (!event) {
+            console.warn(
+              "[Transport] input_audio_buffer.transcript.delta: event is null or undefined"
+            );
+            return;
           }
+
+          const delta = event.delta || event.transcript || "";
+          if (!delta || typeof delta !== "string") {
+            console.warn(
+              "[Transport] input_audio_buffer.transcript.delta: invalid or missing delta:",
+              delta
+            );
+            return;
+          }
+
+          if (delta.trim().length === 0) {
+            console.log(
+              "[Transport] input_audio_buffer.transcript.delta: empty delta, skipping"
+            );
+            return;
+          }
+
+          console.log(
+            "[Transport] User speech delta received:",
+            delta.substring(0, 100)
+          );
+
+          // Update live user speech
+          setLiveUserSpeech((prev) => {
+            const updated = prev + delta;
+            console.log(
+              "[Transport] Updated liveUserSpeech from input:",
+              updated.substring(0, 100)
+            );
+            return updated;
+          });
+
+          // Block user input if assistant is speaking
+          if (isAssistantSpeakingRef.current) {
+            console.log(
+              "[Transport] User speech input blocked - assistant is speaking. Delta ignored:",
+              delta.substring(0, 50)
+            );
+            return;
+          }
+
+          // Add to transcript with proper state management
+          setTranscript((prev) => {
+            const lastMessage = prev[prev.length - 1];
+            const role = "user";
+
+            // Check if we need a new message (different from last or last was assistant)
+            if (
+              !lastMessage ||
+              lastMessage.role !== role ||
+              lastMessage.final
+            ) {
+              console.log(
+                "[Transport] Creating new user message in transcript:",
+                delta.substring(0, 50)
+              );
+              return [
+                ...prev,
+                {
+                  role,
+                  text: delta,
+                  final: false,
+                },
+              ];
+            } else {
+              // Continue existing user message
+              const updatedText = lastMessage.text + delta;
+              console.log(
+                "[Transport] Continuing user message:",
+                updatedText.substring(0, 100)
+              );
+              return [
+                ...prev.slice(0, -1),
+                {
+                  ...lastMessage,
+                  text: updatedText,
+                  final: false,
+                },
+              ];
+            }
+          });
         });
 
         // Listen for user speech started to clear previous speech and start new message
@@ -494,19 +588,228 @@ export function useRealtimeInterview() {
         // Listen for user speech completed to finalize message
         transport.on("input_audio_buffer.speech_stopped", () => {
           console.log("[Transport] User speech stopped");
+
+          // Finalize any incomplete user message in transcript
           setTranscript((prev) => {
-            if (prev.length > 0) {
-              const last = prev[prev.length - 1];
-              if (last.role === "user" && !last.final) {
-                return [...prev.slice(0, -1), { ...last, final: true }];
-              }
+            const last = prev[prev.length - 1];
+
+            // If we have an incomplete user message, finalize it
+            if (last && last.role === "user" && !last.final) {
+              console.log(
+                "[Transport] Finalizing user message from transcript:",
+                last.text.substring(0, 100)
+              );
+              return [...prev.slice(0, -1), { ...last, final: true }];
             }
+
             return prev;
           });
-          // Clear live speech after a short delay
+
+          // Fallback: Check liveUserSpeech and add to transcript if needed
+          // Use a ref to access current liveUserSpeech value
           setTimeout(() => {
-            setLiveUserSpeech("");
-          }, 500);
+            setLiveUserSpeech((currentLiveSpeech) => {
+              if (currentLiveSpeech && currentLiveSpeech.trim().length > 0) {
+                setTranscript((prevTranscript) => {
+                  // Check if this message already exists
+                  const exists = prevTranscript.some(
+                    (msg) =>
+                      msg.role === "user" &&
+                      msg.text === currentLiveSpeech &&
+                      msg.final === true
+                  );
+
+                  if (!exists) {
+                    // Check if there's an incomplete message to replace
+                    const last = prevTranscript[prevTranscript.length - 1];
+                    if (last && last.role === "user" && !last.final) {
+                      console.log(
+                        "[Transport] Replacing incomplete user message with liveUserSpeech"
+                      );
+                      return [
+                        ...prevTranscript.slice(0, -1),
+                        {
+                          role: "user",
+                          text: currentLiveSpeech,
+                          final: true,
+                        },
+                      ];
+                    }
+
+                    console.log(
+                      "[Transport] Fallback: Adding user message from liveUserSpeech:",
+                      currentLiveSpeech.substring(0, 100)
+                    );
+                    return [
+                      ...prevTranscript,
+                      {
+                        role: "user",
+                        text: currentLiveSpeech,
+                        final: true,
+                      },
+                    ];
+                  }
+                  return prevTranscript;
+                });
+              }
+              return ""; // Clear live speech
+            });
+          }, 100);
+        });
+
+        // Additional fallback: Listen for input_audio_buffer.transcript.done
+        transport.on("input_audio_buffer.transcript.done", (event) => {
+          console.log("[Transport] input_audio_buffer.transcript.done:", event);
+
+          // Block user input if assistant is speaking
+          if (isAssistantSpeakingRef.current) {
+            console.log(
+              "[Transport] User transcription done blocked - assistant is speaking"
+            );
+            return;
+          }
+
+          if (event.transcript) {
+            const userText = event.transcript;
+            console.log(
+              "[Transport] User transcription done (from done event):",
+              userText.substring(0, 100)
+            );
+
+            setTranscript((prev) => {
+              // Check for duplicates
+              const exists = prev.some(
+                (msg) =>
+                  msg.role === "user" &&
+                  msg.text === userText &&
+                  msg.final === true
+              );
+
+              if (exists) {
+                console.log(
+                  "[Transport] User message already exists, skipping"
+                );
+                return prev;
+              }
+
+              // Replace incomplete message or add new one
+              const lastMessage = prev[prev.length - 1];
+              if (
+                lastMessage &&
+                lastMessage.role === "user" &&
+                !lastMessage.final
+              ) {
+                return [
+                  ...prev.slice(0, -1),
+                  {
+                    role: "user",
+                    text: userText,
+                    final: true,
+                  },
+                ];
+              }
+
+              return [
+                ...prev,
+                {
+                  role: "user",
+                  text: userText,
+                  final: true,
+                },
+              ];
+            });
+          }
+        });
+
+        // Listen for conversation item events to capture user speech
+        transport.on(
+          "conversation.item.input_audio_transcription.completed",
+          (event) => {
+            console.log(
+              "[Transport] conversation.item.input_audio_transcription.completed:",
+              event
+            );
+
+            // Block user input if assistant is speaking
+            if (isAssistantSpeakingRef.current) {
+              console.log(
+                "[Transport] User transcription blocked - assistant is speaking. Transcript ignored:",
+                event.transcript?.substring(0, 50)
+              );
+              return;
+            }
+
+            if (event.transcript) {
+              const userText = event.transcript;
+              console.log(
+                "[Transport] User transcription completed:",
+                userText.substring(0, 100)
+              );
+
+              // Add user message to transcript
+              setTranscript((prev) => {
+                // Check if we already have this message (avoid duplicates)
+                const existingIndex = prev.findIndex(
+                  (msg) =>
+                    msg.role === "user" &&
+                    msg.text === userText &&
+                    msg.final === true
+                );
+
+                if (existingIndex >= 0) {
+                  console.log(
+                    "[Transport] User message already exists, skipping duplicate"
+                  );
+                  return prev;
+                }
+
+                // Check if there's an incomplete user message to replace
+                const lastMessage = prev[prev.length - 1];
+                if (
+                  lastMessage &&
+                  lastMessage.role === "user" &&
+                  !lastMessage.final
+                ) {
+                  console.log(
+                    "[Transport] Replacing incomplete user message with final transcription"
+                  );
+                  return [
+                    ...prev.slice(0, -1),
+                    {
+                      role: "user",
+                      text: userText,
+                      final: true,
+                    },
+                  ];
+                }
+
+                // Add new user message
+                console.log(
+                  "[Transport] Adding new user message to transcript"
+                );
+                return [
+                  ...prev,
+                  {
+                    role: "user",
+                    text: userText,
+                    final: true,
+                  },
+                ];
+              });
+            }
+          }
+        );
+
+        // Listen for conversation item creation
+        transport.on("conversation.item.created", (event) => {
+          console.log("[Transport] conversation.item.created:", event);
+          if (event.item && event.item.type === "message") {
+            console.log(
+              "[Transport] New conversation item created:",
+              event.item
+            );
+            // This can help us track when user messages are being created
+          }
         });
 
         // Listen to all events for debugging
@@ -515,7 +818,9 @@ export function useRealtimeInterview() {
             typeof eventName === "string" &&
             (eventName.includes("text") ||
               eventName.includes("transcript") ||
-              eventName.includes("delta"))
+              eventName.includes("delta") ||
+              eventName.includes("conversation") ||
+              eventName.includes("input_audio"))
           ) {
             console.log(`[Transport] Event: ${eventName}`, event);
           }
@@ -525,6 +830,8 @@ export function useRealtimeInterview() {
           console.log(
             "[Transport] Response started - new assistant message beginning"
           );
+          isAssistantSpeakingRef.current = true;
+          setIsAssistantSpeaking(true);
           setCurrentQuestion(null);
           setLiveAssistantSpeech(""); // Clear previous live speech
           // Reset response tracking for new message
@@ -534,6 +841,8 @@ export function useRealtimeInterview() {
 
         transport.on("response_completed", () => {
           console.log("[Transport] Response completed");
+          isAssistantSpeakingRef.current = false;
+          setIsAssistantSpeaking(false);
           setLiveAssistantSpeech(""); // Clear live speech when response completes - prevent duplication
           setTranscript((prev) => {
             if (prev.length > 0) {
@@ -568,10 +877,14 @@ export function useRealtimeInterview() {
         });
 
         transport.on("response_audio_started", () => {
+          isAssistantSpeakingRef.current = true;
+          setIsAssistantSpeaking(true);
           setStatus("speaking");
         });
 
         transport.on("response_audio_stopped", () => {
+          isAssistantSpeakingRef.current = false;
+          setIsAssistantSpeaking(false);
           setStatus("active");
         });
 
@@ -683,6 +996,7 @@ export function useRealtimeInterview() {
     totalQuestions: skills.length * 2,
     liveUserSpeech,
     liveAssistantSpeech,
+    isAssistantSpeaking,
     startInterview,
     stopInterview,
   };

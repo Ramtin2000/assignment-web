@@ -30,6 +30,8 @@ import {
   MessageSquare,
   Home,
   Trophy,
+  Mic,
+  MicOff,
 } from "lucide-react";
 
 const getStatusBadgeClasses = (status) => {
@@ -293,6 +295,100 @@ const PreparationStep = ({
   );
 };
 
+// Speaking Indicator Component
+const SpeakingIndicator = ({ isActive, status, isAssistantSpeaking }) => {
+  // Don't show indicator when assistant is speaking
+  if (isAssistantSpeaking || status === "idle" || status === "connecting") {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="mb-md"
+    >
+      <div className="relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 overflow-hidden">
+        {/* Subtle pulse animation */}
+        {isActive && status === "active" && (
+          <motion.div
+            className="absolute inset-0 rounded-full bg-primary/20"
+            animate={{
+              scale: [1, 1.05, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        )}
+
+        {/* Microphone icon */}
+        <motion.div
+          className="relative z-10"
+          animate={
+            isActive && status === "active"
+              ? {
+                  scale: [1, 1.1, 1],
+                }
+              : {}
+          }
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <Mic
+            className={`w-4 h-4 ${
+              status === "listening"
+                ? "text-primary"
+                : isActive
+                ? "text-primary"
+                : "text-gray-400"
+            }`}
+            strokeWidth={2}
+          />
+        </motion.div>
+
+        {/* Status text */}
+        <span className="relative z-10 text-sm font-medium text-gray-700 whitespace-nowrap">
+          {status === "listening"
+            ? "Listening..."
+            : isActive
+            ? "Your turn"
+            : "Ready"}
+        </span>
+
+        {/* Pulse dots when active */}
+        {isActive && status === "active" && (
+          <div className="relative z-10 flex items-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-1.5 h-1.5 bg-primary rounded-full"
+                animate={{
+                  scale: [1, 1.3, 1],
+                  opacity: [0.4, 1, 0.4],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.15,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 // Active Interview Step
 const ActiveInterviewStep = ({
   status,
@@ -302,6 +398,7 @@ const ActiveInterviewStep = ({
   questionsAnswered,
   canEndInterview,
   totalQuestions,
+  isAssistantSpeaking,
   onStopInterview,
   onInterviewComplete,
   transcriptEndRef,
@@ -359,6 +456,12 @@ const ActiveInterviewStep = ({
           </div>
         </div>
       )}
+
+      <SpeakingIndicator
+        isActive={!isAssistantSpeaking && status === "active"}
+        status={status}
+        isAssistantSpeaking={isAssistantSpeaking}
+      />
 
       <div className="flex-1 flex flex-col gap-lg min-h-0">
         {currentQuestion && (
@@ -516,6 +619,7 @@ export default function RealtimeInterview() {
     questionsAnswered,
     canEndInterview,
     totalQuestions,
+    isAssistantSpeaking,
     startInterview,
     stopInterview,
   } = useRealtimeInterview();
@@ -736,6 +840,7 @@ export default function RealtimeInterview() {
               questionsAnswered={questionsAnswered}
               canEndInterview={canEndInterview}
               totalQuestions={totalQuestions}
+              isAssistantSpeaking={isAssistantSpeaking}
               onStopInterview={stopInterview}
               onInterviewComplete={() => {
                 if (questionsAnswered >= totalQuestions) {
