@@ -10,6 +10,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import InterviewGenerator from "./components/InterviewGenerator";
 import InterviewSession from "./components/InterviewSession";
+import EvaluationsDashboard from "./components/EvaluationsDashboard";
 import "./App.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -71,6 +72,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <InterviewSession />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <EvaluationsDashboard />
                 </ProtectedRoute>
               }
             />

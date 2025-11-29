@@ -41,7 +41,24 @@ const InterviewGenerator = () => {
 
   return (
     <div style={{ maxWidth: '600px', margin: '50px auto', padding: '20px' }}>
-      <h2>Generate Interview</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>Generate Interview</h2>
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#4f46e5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          View Evaluations
+        </button>
+      </div>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
           <label>
