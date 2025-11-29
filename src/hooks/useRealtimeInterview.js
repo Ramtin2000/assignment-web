@@ -196,13 +196,20 @@ export function useRealtimeInterview() {
                   );
                   console.log("[Tool] Evaluation logged successfully:", result);
 
+                  // Update questions answered count
                   setQuestionsAnswered((prev) => {
                     const newCount = Math.min(
                       prev + 1,
                       skillsRef.current.length * 2
                     );
                     const totalQuestions = skillsRef.current.length * 2;
+                    console.log(
+                      `[Tool] Updating questionsAnswered: ${prev} -> ${newCount} (total: ${totalQuestions})`
+                    );
                     if (newCount >= totalQuestions) {
+                      console.log(
+                        "[Tool] All questions answered, enabling end interview"
+                      );
                       setCanEndInterview(true);
                     }
                     return newCount;
