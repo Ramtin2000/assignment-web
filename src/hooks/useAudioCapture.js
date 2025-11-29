@@ -14,23 +14,28 @@ export const useAudioCapture = (sessionId, options = {}) => {
   const [transcription, setTranscription] = useState("");
   const audioStreamRef = useRef(null);
   const clientSecretRef = useRef(null);
+  const transcriptionRef = useRef("");
 
   useEffect(() => {
     // Set up Realtime Service listeners
     const handleTranscriptionDelta = (delta) => {
       // Delta is the incremental text update
-      setTranscription((prev) => {
-        // For partial updates, we accumulate the deltas
-        const newText = prev + delta;
-        if (onTranscriptionResult) {
-          onTranscriptionResult({ text: newText, isPartial: true, sessionId });
-        }
-        return newText;
-      });
+      // Update ref immediately for synchronous access
+      transcriptionRef.current = transcriptionRef.current + delta;
+      const newText = transcriptionRef.current;
+
+      // Update state
+      setTranscription(newText);
+
+      // Call callback immediately with the new accumulated value
+      if (onTranscriptionResult) {
+        onTranscriptionResult({ text: newText, isPartial: true, sessionId });
+      }
     };
 
     const handleTranscriptionComplete = (text) => {
       // Final transcription replaces the accumulated text
+      transcriptionRef.current = text;
       setTranscription(text);
       if (onTranscriptionComplete) {
         onTranscriptionComplete({
@@ -135,6 +140,7 @@ export const useAudioCapture = (sessionId, options = {}) => {
   }, [autoStart, sessionId]);
 
   const clearTranscription = () => {
+    transcriptionRef.current = "";
     setTranscription("");
   };
 

@@ -133,12 +133,9 @@ class TranscriptionWebRTCService {
 
   setupDataChannel() {
     this.dataChannel.onopen = () => {
-      console.log("Data channel opened");
-      // Wait a bit for session to be ready, then send configuration
-      // The session will be created by OpenAI, then we update it
-      setTimeout(() => {
-        this.configureSession();
-      }, 100);
+      console.log("Data channel opened - waiting for session.created event");
+      // Session configuration will be triggered by session.created event handler
+      // No need to call configureSession() here as sessionId won't be available yet
     };
 
     this.dataChannel.onmessage = (event) => {
@@ -215,6 +212,8 @@ class TranscriptionWebRTCService {
       return;
     }
 
+    console.log(`Configuring session ${this.sessionId} for transcription...`);
+
     const config = {
       type: "transcription_session.update",
       session: {
@@ -234,8 +233,9 @@ class TranscriptionWebRTCService {
       },
     };
 
-    console.log("Sending transcription session configuration:", config);
+    console.log("Sending session configuration for transcription:", config);
     this.send(config);
+    console.log("Session configuration sent successfully");
   }
 
   send(message) {
@@ -279,29 +279,34 @@ class TranscriptionWebRTCService {
         message.error?.message || "Unknown error from OpenAI API"
       );
       this.emit("error", error);
-    } else if (message.type === "transcription_session.created") {
+    } else if (
+      message.type === "session.created" ||
+      message.type === "transcription_session.created"
+    ) {
       // Session created - store session ID and update it with transcription settings
       if (message.session?.id) {
         this.sessionId = message.session.id;
         console.log(
-          "Transcription session created, ID:",
+          "Session created, ID:",
           this.sessionId,
-          "updating with transcription config..."
+          "- updating with transcription config..."
         );
         // Send configuration after session is created
         setTimeout(() => {
           this.configureSession();
         }, 100);
       } else {
-        console.warn("Transcription session created but no session ID found");
+        console.warn(
+          "Session created but no session ID found in message:",
+          message
+        );
       }
     } else if (
-      message.type === "session.created" ||
       message.type === "session.updated" ||
       message.type === "transcription_session.updated"
     ) {
       // Session lifecycle events
-      console.log("Session event:", message.type);
+      console.log("Session updated:", message.type);
     } else if (
       message.type === "conversation.item.created" ||
       message.type === "input_audio_buffer.speech_started" ||

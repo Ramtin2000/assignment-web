@@ -149,7 +149,6 @@ const InterviewSession = () => {
     nextQuestion,
   } = useInterview(interviewId);
 
-  const [transcript, setTranscript] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
   const [isReadingQuestion, setIsReadingQuestion] = useState(false);
   const transcriptRef = useRef("");
@@ -168,15 +167,8 @@ const InterviewSession = () => {
     isLastQuestionRef.current = isLastQuestion;
   }, [isLastQuestion]);
 
-  const handleTranscriptionResult = useCallback((data) => {
-    if (data.isPartial) {
-      setTranscript((prev) => prev + data.text);
-    }
-  }, []);
-
   const handleTranscriptionComplete = useCallback(async (data) => {
     const finalTranscript = data.text;
-    setTranscript(finalTranscript);
     transcriptRef.current = finalTranscript;
 
     console.log(
@@ -203,12 +195,16 @@ const InterviewSession = () => {
     console.error("Transcription error:", err);
   }, []);
 
-  const { isRecording, startRecording, stopRecording, clearTranscription } =
-    useAudioCapture(sessionId, {
-      onTranscriptionResult: handleTranscriptionResult,
-      onTranscriptionComplete: handleTranscriptionComplete,
-      onError: handleTranscriptionError,
-    });
+  const {
+    isRecording,
+    transcription,
+    startRecording,
+    stopRecording,
+    clearTranscription,
+  } = useAudioCapture(sessionId, {
+    onTranscriptionComplete: handleTranscriptionComplete,
+    onError: handleTranscriptionError,
+  });
 
   useEffect(() => {
     stopRecordingRef.current = stopRecording;
@@ -244,7 +240,6 @@ const InterviewSession = () => {
       hasReadQuestionRef.current = false;
 
       transcriptRef.current = "";
-      setTranscript("");
       if (clearTranscriptionRef.current) clearTranscriptionRef.current();
 
       const readQuestionAndStartRecording = async () => {
@@ -363,7 +358,7 @@ const InterviewSession = () => {
           <TranscriptTitle>Your Answer</TranscriptTitle>
           <CardBody>
             <TranscriptDisplay
-              transcript={transcript}
+              transcript={transcription}
               isListening={isRecording}
             />
           </CardBody>

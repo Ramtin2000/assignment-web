@@ -14,31 +14,16 @@ const NavContainer = styled.nav`
   border-right: 1px solid ${(props) => props.theme.colors.gray[200]};
   display: flex;
   flex-direction: column;
-  padding: ${(props) => props.theme.spacing.lg};
+  padding: ${(props) => props.theme.spacing.sm} 0;
   box-shadow: ${(props) => props.theme.shadows.sm};
   z-index: 100;
   overflow: hidden;
   box-sizing: border-box;
 `;
 
-const NavHeader = styled.div`
-  margin-bottom: ${(props) => props.theme.spacing.md};
-  padding-bottom: ${(props) => props.theme.spacing.md};
-  border-bottom: 1px solid ${(props) => props.theme.colors.gray[200]};
-  flex-shrink: 0;
-`;
-
-const NavTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: ${(props) => props.theme.colors.gray[900]};
-  margin: 0;
-`;
-
 const NavLinks = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -46,7 +31,6 @@ const NavLinks = styled.div`
 
 const NavLink = styled(motion.div)`
   padding: ${(props) => props.theme.spacing.md};
-  border-radius: ${(props) => props.theme.borderRadius.md};
   cursor: pointer;
   font-weight: 500;
   color: ${(props) =>
@@ -67,7 +51,7 @@ const NavLink = styled(motion.div)`
 
 const NavFooter = styled.div`
   margin-top: auto;
-  padding-top: ${(props) => props.theme.spacing.lg};
+  padding-top: ${(props) => props.theme.spacing.sm};
   border-top: 1px solid ${(props) => props.theme.colors.gray[200]};
   flex-shrink: 0;
 `;
@@ -76,7 +60,6 @@ const LogoutButton = styled(motion.button)`
   width: 100%;
   padding: ${(props) => props.theme.spacing.md};
   border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
   background: ${(props) => props.theme.colors.danger};
   color: ${(props) => props.theme.colors.white};
   font-weight: 500;
@@ -85,7 +68,6 @@ const LogoutButton = styled(motion.button)`
 
   &:hover {
     background: #c82333;
-    transform: translateY(-1px);
     box-shadow: ${(props) => props.theme.shadows.md};
   }
 `;
@@ -108,9 +90,6 @@ export const SideNav = () => {
 
   return (
     <NavContainer>
-      <NavHeader>
-        <NavTitle>Interview App</NavTitle>
-      </NavHeader>
       <NavLinks>
         {navItems.map((item) => {
           const isActive =
@@ -122,7 +101,6 @@ export const SideNav = () => {
               key={item.path}
               active={isActive}
               onClick={() => navigate(item.path)}
-              whileHover={{ x: 4 }}
               whileTap={{ scale: 0.98 }}
             >
               {item.label}
