@@ -1,123 +1,5 @@
 import React, { useState } from "react";
-import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-
-const TagInputContainer = styled.div`
-  width: 100%;
-`;
-
-const TagsContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${(props) => props.theme.spacing.xs};
-  margin-top: ${(props) => props.theme.spacing.xs};
-  align-items: flex-start;
-  justify-content: flex-start;
-`;
-
-const Tag = styled(motion.span)`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: ${(props) => props.theme.colors.primary};
-  color: ${(props) => props.theme.colors.white};
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  text-align: left;
-`;
-
-const TagText = styled.span`
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left;
-`;
-
-const RemoveButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: ${(props) => props.theme.colors.white};
-  cursor: pointer;
-  padding: 0;
-  margin-left: 4px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  transition: background-color ${(props) => props.theme.transitions.fast};
-  font-size: 12px;
-  line-height: 1;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  &:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.3);
-  }
-`;
-
-const InputWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: ${(props) => props.theme.spacing.sm};
-`;
-
-const StyledInput = styled.input`
-  flex: 1;
-  padding: ${(props) => props.theme.spacing.sm}
-    ${(props) => props.theme.spacing.md};
-  border: 1px solid ${(props) => props.theme.colors.gray[300]};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: 1rem;
-  box-sizing: border-box;
-  transition: all ${(props) => props.theme.transitions.fast};
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme.colors.primary};
-    box-shadow: 0 0 0 3px ${(props) => props.theme.colors.primaryLight}33;
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme.colors.gray[400]};
-  }
-`;
-
-const AddButton = styled(motion.button)`
-  padding: ${(props) => props.theme.spacing.sm}
-    ${(props) => props.theme.spacing.md};
-  background: ${(props) => props.theme.colors.primary};
-  color: ${(props) => props.theme.colors.white};
-  border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color ${(props) => props.theme.transitions.fast};
-  white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    background: ${(props) => props.theme.colors.primaryDark};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px ${(props) => props.theme.colors.primaryLight}33;
-  }
-`;
 
 const tagVariants = {
   initial: { opacity: 0, scale: 0.8, x: -10 },
@@ -169,9 +51,9 @@ export const TagInput = ({
   };
 
   return (
-    <TagInputContainer {...props}>
-      <InputWrapper>
-        <StyledInput
+    <div className="w-full" {...props}>
+      <div className="relative flex items-center gap-sm">
+        <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
@@ -180,45 +62,54 @@ export const TagInput = ({
             value.length === 0 ? placeholder : "Add another skill..."
           }
           disabled={maxTags && value.length >= maxTags}
+          className="flex-1 px-md py-sm border border-gray-300 rounded-md text-base box-border transition-all duration-fast focus:outline-none focus:border-primary focus:ring-2 focus:ring-primaryLight/20 placeholder:text-gray-400 disabled:opacity-50"
         />
         {inputValue.trim() && (
-          <AddButton
+          <motion.button
             type="button"
             onClick={handleAddTag}
             disabled={maxTags && value.length >= maxTags}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            className="px-md py-sm bg-primary text-white border-none rounded-md text-sm font-medium cursor-pointer transition-colors duration-fast whitespace-nowrap hover:bg-primaryDark disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primaryLight/20"
           >
             Add
-          </AddButton>
+          </motion.button>
         )}
-      </InputWrapper>
+      </div>
       {value.length > 0 && (
-        <TagsContainer>
+        <div className="flex flex-wrap gap-xs mt-xs items-start justify-start">
           <AnimatePresence>
             {value.map((tag, index) => (
-              <Tag
+              <motion.span
                 key={`${tag}-${index}`}
                 variants={tagVariants}
                 initial="initial"
                 animate="animate"
                 exit="exit"
                 transition={{ duration: 0.2 }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary text-white rounded-full text-xs font-medium whitespace-nowrap text-left"
               >
-                <TagText title={tag}>{tag}</TagText>
-                <RemoveButton
+                <span
+                  className="max-w-[200px] overflow-hidden text-ellipsis text-left"
+                  title={tag}
+                >
+                  {tag}
+                </span>
+                <button
                   type="button"
                   onClick={() => handleRemoveTag(index)}
                   aria-label={`Remove ${tag}`}
+                  className="flex items-center justify-center bg-transparent border-none text-white cursor-pointer p-0 ml-1 w-3.5 h-3.5 rounded-full transition-colors duration-fast text-xs leading-none hover:bg-white/20 focus:outline-none focus:bg-white/30"
                 >
                   ×
-                </RemoveButton>
-              </Tag>
+                </button>
+              </motion.span>
             ))}
           </AnimatePresence>
-        </TagsContainer>
+        </div>
       )}
-    </TagInputContainer>
+    </div>
   );
 };
 

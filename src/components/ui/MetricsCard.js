@@ -1,65 +1,37 @@
 import React from "react";
-import styled from "styled-components";
-import { DashboardCard, CardTitle, CardBody } from "./Dashboard";
-
-const MetricsList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-`;
-
-const MetricsItem = styled.li`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.gray[700]};
-`;
-
-const MetricsLabel = styled.span`
-  font-weight: 500;
-`;
-
-const MetricsValue = styled.span`
-  color: ${(props) => props.theme.colors.gray[900]};
-  font-weight: 600;
-`;
-
-const MetricsSubLabel = styled.span`
-  font-size: 0.75rem;
-  color: ${(props) => props.theme.colors.gray[500]};
-  margin-left: ${(props) => props.theme.spacing.xs};
-`;
+import { motion } from "framer-motion";
 
 export const MetricsCard = ({ title, items = [], valueSuffix = "/10" }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <DashboardCard>
-      <CardTitle style={{ marginBottom: "0.5rem" }}>{title}</CardTitle>
-      <CardBody>
-        <MetricsList>
+    <motion.div className="bg-white rounded-lg p-lg shadow-sm transition-all duration-normal border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-2 m-0 text-left">
+        {title}
+      </h3>
+      <div className="text-gray-700 leading-relaxed text-left">
+        <ul className="list-none p-0 m-0 flex flex-col gap-xs">
           {items.map((item, index) => (
-            <MetricsItem key={index}>
-              <MetricsLabel>{item.label}</MetricsLabel>
+            <li
+              key={index}
+              className="flex justify-between items-center text-sm text-gray-700"
+            >
+              <span className="font-medium">{item.label}</span>
               <span>
-                <MetricsValue>
+                <span className="text-gray-900 font-semibold">
                   {item.averageScore.toFixed(1)}
                   {valueSuffix}
-                </MetricsValue>
-                <MetricsSubLabel>
+                </span>
+                <span className="text-xs text-gray-500 ml-xs">
                   · {item.questionCount} question
                   {item.questionCount !== 1 ? "s" : ""}
-                </MetricsSubLabel>
+                </span>
               </span>
-            </MetricsItem>
+            </li>
           ))}
-        </MetricsList>
-      </CardBody>
-    </DashboardCard>
+        </ul>
+      </div>
+    </motion.div>
   );
 };
 

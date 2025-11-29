@@ -1,108 +1,76 @@
 import React from "react";
-import styled from "styled-components";
 import { motion } from "framer-motion";
 
-const StyledBadge = styled(motion.span)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${(props) => {
-    if (props.size === "sm")
-      return `${props.theme.spacing.xs} ${props.theme.spacing.sm}`;
-    if (props.size === "lg")
-      return `${props.theme.spacing.sm} ${props.theme.spacing.md}`;
-    return `${props.theme.spacing.xs} ${props.theme.spacing.sm}`;
-  }};
-  font-size: ${(props) => {
-    if (props.size === "sm") return "0.75rem";
-    if (props.size === "lg") return "1rem";
-    return "0.875rem";
-  }};
-  font-weight: ${(props) => (props.bold ? "600" : "500")};
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  white-space: nowrap;
+const getVariantClasses = (variant) => {
+  switch (variant) {
+    case "success":
+      return "bg-success text-white";
+    case "warning":
+      return "bg-warning text-dark";
+    case "danger":
+      return "bg-danger text-white";
+    case "info":
+      return "bg-info text-white";
+    case "primary":
+      return "bg-primary text-white";
+    case "secondary":
+      return "bg-secondary text-white";
+    case "outline":
+      return "bg-transparent text-primary border border-primary";
+    default:
+      return "bg-gray-200 text-gray-800";
+  }
+};
 
-  ${(props) => {
-    switch (props.variant) {
-      case "success":
-        return `
-          background: ${props.theme.colors.success};
-          color: ${props.theme.colors.white};
-        `;
-      case "warning":
-        return `
-          background: ${props.theme.colors.warning};
-          color: ${props.theme.colors.dark};
-        `;
-      case "danger":
-        return `
-          background: ${props.theme.colors.danger};
-          color: ${props.theme.colors.white};
-        `;
-      case "info":
-        return `
-          background: ${props.theme.colors.info};
-          color: ${props.theme.colors.white};
-        `;
-      case "primary":
-        return `
-          background: ${props.theme.colors.primary};
-          color: ${props.theme.colors.white};
-        `;
-      case "secondary":
-        return `
-          background: ${props.theme.colors.secondary};
-          color: ${props.theme.colors.white};
-        `;
-      case "outline":
-        return `
-          background: transparent;
-          color: ${props.theme.colors.primary};
-          border: 1px solid ${props.theme.colors.primary};
-        `;
-      default:
-        return `
-          background: ${props.theme.colors.gray[200]};
-          color: ${props.theme.colors.gray[800]};
-        `;
-    }
-  }}
-`;
-
-// Score Badge with automatic color based on score
-export const ScoreBadge = styled(StyledBadge)`
-  ${(props) => {
-    const score = props.score || 0;
-    if (score >= 8) {
-      return `
-        background: ${props.theme.colors.success};
-        color: ${props.theme.colors.white};
-      `;
-    }
-    if (score >= 6) {
-      return `
-        background: ${props.theme.colors.warning};
-        color: ${props.theme.colors.dark};
-      `;
-    }
-    return `
-      background: ${props.theme.colors.danger};
-      color: ${props.theme.colors.white};
-    `;
-  }}
-`;
+const getSizeClasses = (size) => {
+  switch (size) {
+    case "sm":
+      return "px-sm py-xs text-xs";
+    case "lg":
+      return "px-md py-sm text-base";
+    default:
+      return "px-sm py-xs text-sm";
+  }
+};
 
 export const Badge = ({
   children,
   variant = "default",
   size = "md",
   bold = false,
+  className = "",
   ...props
 }) => {
+  const baseClasses =
+    "inline-flex items-center justify-center rounded-full whitespace-nowrap";
+  const variantClasses = getVariantClasses(variant);
+  const sizeClasses = getSizeClasses(size);
+  const weightClass = bold ? "font-semibold" : "font-medium";
+
+  const badgeClasses =
+    `${baseClasses} ${variantClasses} ${sizeClasses} ${weightClass} ${className}`.trim();
+
   return (
-    <StyledBadge variant={variant} size={size} bold={bold} {...props}>
+    <motion.span className={badgeClasses} {...props}>
       {children}
-    </StyledBadge>
+    </motion.span>
+  );
+};
+
+export const ScoreBadge = ({
+  score = 0,
+  children,
+  className = "",
+  ...props
+}) => {
+  let variant = "danger";
+  if (score >= 8) variant = "success";
+  else if (score >= 6) variant = "warning";
+
+  return (
+    <Badge variant={variant} className={className} {...props}>
+      {children}
+    </Badge>
   );
 };
 

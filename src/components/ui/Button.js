@@ -1,118 +1,35 @@
 import React from "react";
-import styled from "styled-components";
 import { motion } from "framer-motion";
 
-const StyledButton = styled(motion.button)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${(props) => props.theme.spacing.sm};
-  padding: ${(props) => {
-    if (props.size === "sm")
-      return `${props.theme.spacing.xs} ${props.theme.spacing.sm}`;
-    if (props.size === "lg")
-      return `${props.theme.spacing.md} ${props.theme.spacing.xl}`;
-    return `${props.theme.spacing.sm} ${props.theme.spacing.md}`;
-  }};
-  font-size: ${(props) => {
-    if (props.size === "sm") return "0.875rem";
-    if (props.size === "lg") return "1.125rem";
-    return "1rem";
-  }};
-  font-weight: 500;
-  border: none;
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  cursor: pointer;
-  transition: all ${(props) => props.theme.transitions.fast};
-  white-space: nowrap;
-
-  ${(props) => {
-    switch (props.variant) {
-      case "primary":
-        return `
-          background: ${props.theme.colors.primary};
-          color: ${props.theme.colors.white};
-          &:hover:not(:disabled) {
-            background: ${props.theme.colors.primaryDark};
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.md};
-          }
-        `;
-      case "secondary":
-        return `
-          background: ${props.theme.colors.secondary};
-          color: ${props.theme.colors.white};
-          &:hover:not(:disabled) {
-            background: ${props.theme.colors.gray[700]};
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.md};
-          }
-        `;
-      case "outline":
-        return `
-          background: transparent;
-          color: ${props.theme.colors.primary};
-          border: 2px solid ${props.theme.colors.primary};
-          &:hover:not(:disabled) {
-            background: ${props.theme.colors.primary};
-            color: ${props.theme.colors.white};
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.md};
-          }
-        `;
-      case "ghost":
-        return `
-          background: transparent;
-          color: ${props.theme.colors.primary};
-          &:hover:not(:disabled) {
-            background: ${props.theme.colors.gray[100]};
-          }
-        `;
-      case "danger":
-        return `
-          background: ${props.theme.colors.danger};
-          color: ${props.theme.colors.white};
-          &:hover:not(:disabled) {
-            background: #c82333;
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.md};
-          }
-        `;
-      case "success":
-        return `
-          background: ${props.theme.colors.success};
-          color: ${props.theme.colors.white};
-          &:hover:not(:disabled) {
-            background: #218838;
-            transform: translateY(-2px);
-            box-shadow: ${props.theme.shadows.md};
-          }
-        `;
-      default:
-        return `
-          background: ${props.theme.colors.primary};
-          color: ${props.theme.colors.white};
-        `;
-    }
-  }}
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
+const getVariantClasses = (variant) => {
+  switch (variant) {
+    case "primary":
+      return "bg-primary text-white hover:bg-primaryDark hover:-translate-y-0.5 hover:shadow-md active:translate-y-0";
+    case "secondary":
+      return "bg-secondary text-white hover:bg-gray-700 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0";
+    case "outline":
+      return "bg-transparent text-primary border-2 border-primary hover:bg-primary hover:text-white hover:-translate-y-0.5 hover:shadow-md active:translate-y-0";
+    case "ghost":
+      return "bg-transparent text-primary hover:bg-gray-100";
+    case "danger":
+      return "bg-danger text-white hover:bg-[#c82333] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0";
+    case "success":
+      return "bg-success text-white hover:bg-[#218838] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0";
+    default:
+      return "bg-primary text-white";
   }
+};
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+const getSizeClasses = (size) => {
+  switch (size) {
+    case "sm":
+      return "px-sm py-xs text-sm";
+    case "lg":
+      return "px-xl py-md text-lg";
+    default:
+      return "px-md py-sm text-base";
   }
-
-  ${(props) => props.fullWidth && "width: 100%;"}
-`;
-
-const IconWrapper = styled.span`
-  display: inline-flex;
-  align-items: center;
-  ${(props) => props.iconPosition === "right" && "order: 2;"}
-`;
+};
 
 export const Button = ({
   children,
@@ -124,29 +41,39 @@ export const Button = ({
   onClick,
   disabled = false,
   type = "button",
+  className = "",
   ...props
 }) => {
+  const baseClasses =
+    "inline-flex items-center justify-center gap-sm font-medium border-none rounded-md cursor-pointer transition-all duration-fast whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed";
+  const variantClasses = getVariantClasses(variant);
+  const sizeClasses = getSizeClasses(size);
+  const widthClass = fullWidth ? "w-full" : "";
+
+  const buttonClasses =
+    `${baseClasses} ${variantClasses} ${sizeClasses} ${widthClass} ${className}`.trim();
+
   const buttonProps = {
-    variant,
-    size,
-    fullWidth,
     onClick,
     disabled,
     type,
     whileHover: !disabled ? { scale: 1.01 } : {},
     whileTap: !disabled ? { scale: 0.99 } : {},
     transition: { duration: 0.15 },
+    className: buttonClasses,
     ...props,
   };
 
   return (
-    <StyledButton {...buttonProps}>
-      {icon && iconPosition === "left" && <IconWrapper>{icon}</IconWrapper>}
+    <motion.button {...buttonProps}>
+      {icon && iconPosition === "left" && (
+        <span className="inline-flex items-center">{icon}</span>
+      )}
       {children}
       {icon && iconPosition === "right" && (
-        <IconWrapper iconPosition="right">{icon}</IconWrapper>
+        <span className="inline-flex items-center order-2">{icon}</span>
       )}
-    </StyledButton>
+    </motion.button>
   );
 };
 

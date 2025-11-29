@@ -1,6 +1,6 @@
 # UI Components
 
-Reusable UI components built with styled-components and framer-motion.
+Reusable UI components built with Tailwind CSS and framer-motion.
 
 ## Button
 

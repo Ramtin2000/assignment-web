@@ -1,173 +1,23 @@
 import React, { useState, useEffect } from "react";
-import styled from "styled-components";
 import { realtimeInterviewService } from "../services/api.service";
-import { Card } from "../lib/styled";
 import { Button } from "./ui/Button";
 import { Loading } from "./ui/Loading";
 import { Error } from "./ui/Error";
 
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: ${(props) => props.theme.spacing.lg};
-`;
+const getScoreColor = (score) => {
+  if (score >= 8) return "text-success";
+  if (score >= 5) return "text-warning";
+  return "text-danger";
+};
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-  padding-bottom: ${(props) => props.theme.spacing.md};
-  border-bottom: 2px solid ${(props) => props.theme.colors.gray[200]};
-`;
-
-const Title = styled.h1`
-  font-size: 2rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[900]};
-  margin: 0;
-`;
-
-const SessionsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.lg};
-`;
-
-const SessionCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.md};
-`;
-
-const SessionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: ${(props) => props.theme.spacing.sm};
-  border-bottom: 1px solid ${(props) => props.theme.colors.gray[200]};
-`;
-
-const SessionInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-`;
-
-const SessionId = styled.div`
-  font-size: 0.875rem;
-  font-family: monospace;
-  color: ${(props) => props.theme.colors.gray[600]};
-`;
-
-const SessionDate = styled.div`
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.gray[500]};
-`;
-
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: ${(props) => props.theme.spacing.xs} ${(props) => props.theme.spacing.sm};
-  border-radius: ${(props) => props.theme.borderRadius.full};
-  font-size: 0.875rem;
-  font-weight: 500;
-  background: ${(props) =>
-    props.status === "completed"
-      ? props.theme.colors.success + "20"
-      : props.theme.colors.primary + "20"};
-  color: ${(props) =>
-    props.status === "completed"
-      ? props.theme.colors.success
-      : props.theme.colors.primary};
-`;
-
-const QAsSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.md};
-`;
-
-const QAsHeader = styled.div`
-  font-size: 1rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[700]};
-`;
-
-const QACard = styled.div`
-  padding: ${(props) => props.theme.spacing.md};
-  background: ${(props) => props.theme.colors.gray[50]};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  border-left: 4px solid ${(props) => props.theme.colors.primary};
-`;
-
-const Question = styled.div`
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[900]};
-  margin-bottom: ${(props) => props.theme.spacing.xs};
-`;
-
-const Answer = styled.div`
-  color: ${(props) => props.theme.colors.gray[700]};
-  margin-bottom: ${(props) => props.theme.spacing.sm};
-  font-style: italic;
-`;
-
-const Evaluation = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-  padding-top: ${(props) => props.theme.spacing.sm};
-  border-top: 1px solid ${(props) => props.theme.colors.gray[200]};
-`;
-
-const Score = styled.div`
-  font-weight: 600;
-  color: ${(props) => {
-    if (props.score >= 8) return props.theme.colors.success;
-    if (props.score >= 5) return props.theme.colors.warning;
-    return props.theme.colors.danger;
-  }};
-`;
-
-const Feedback = styled.div`
-  color: ${(props) => props.theme.colors.gray[600]};
-  font-size: 0.875rem;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: ${(props) => props.theme.spacing.xl};
-  color: ${(props) => props.theme.colors.gray[500]};
-`;
-
-const Stats = styled.div`
-  display: flex;
-  gap: ${(props) => props.theme.spacing.lg};
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-  padding: ${(props) => props.theme.spacing.md};
-  background: ${(props) => props.theme.colors.gray[50]};
-  border-radius: ${(props) => props.theme.borderRadius.md};
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-`;
-
-const StatValue = styled.div`
-  font-size: 2rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.primary};
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.gray[600]};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
+const getStatusBadgeClasses = (status) => {
+  const base =
+    "inline-flex items-center px-sm py-xs rounded-full text-sm font-medium";
+  if (status === "completed") {
+    return `${base} bg-success/20 text-success`;
+  }
+  return `${base} bg-primary/20 text-primary`;
+};
 
 export default function InterviewDashboard() {
   const [sessions, setSessions] = useState([]);
@@ -197,111 +47,153 @@ export default function InterviewDashboard() {
     return date.toLocaleString();
   };
 
-  const totalQAs = sessions.reduce((sum, session) => sum + (session.qas?.length || 0), 0);
-  const averageScore = sessions.reduce((sum, session) => {
-    const sessionScores = session.qas
-      ?.map((qa) => qa.evaluation?.score)
-      .filter((score) => score !== undefined) || [];
-    const sessionAvg = sessionScores.length > 0
-      ? sessionScores.reduce((a, b) => a + b, 0) / sessionScores.length
-      : 0;
-    return sum + sessionAvg;
-  }, 0) / (sessions.length || 1);
+  const totalQAs = sessions.reduce(
+    (sum, session) => sum + (session.qas?.length || 0),
+    0
+  );
+  const averageScore =
+    sessions.reduce((sum, session) => {
+      const sessionScores =
+        session.qas
+          ?.map((qa) => qa.evaluation?.score)
+          .filter((score) => score !== undefined) || [];
+      const sessionAvg =
+        sessionScores.length > 0
+          ? sessionScores.reduce((a, b) => a + b, 0) / sessionScores.length
+          : 0;
+      return sum + sessionAvg;
+    }, 0) / (sessions.length || 1);
 
   if (loading) {
     return (
-      <Container>
+      <div className="max-w-[1200px] mx-auto p-lg">
         <Loading />
-      </Container>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Container>
+      <div className="max-w-[1200px] mx-auto p-lg">
         <Error message={error} />
-        <Button onClick={loadSessions} variant="primary" style={{ marginTop: "1rem" }}>
+        <Button onClick={loadSessions} variant="primary" className="mt-4">
           Retry
         </Button>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <Header>
-        <Title>Interview Sessions Dashboard</Title>
+    <div className="max-w-[1200px] mx-auto p-lg">
+      <div className="flex justify-between items-center mb-lg pb-md border-b-2 border-gray-200">
+        <h1 className="text-3xl font-semibold text-gray-900 m-0">
+          Interview Sessions Dashboard
+        </h1>
         <Button onClick={loadSessions} variant="outline" size="sm">
           Refresh
         </Button>
-      </Header>
+      </div>
 
-      <Stats>
-        <StatItem>
-          <StatValue>{sessions.length}</StatValue>
-          <StatLabel>Total Sessions</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>{totalQAs}</StatValue>
-          <StatLabel>Total Q&As</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>{averageScore.toFixed(1)}</StatValue>
-          <StatLabel>Average Score</StatLabel>
-        </StatItem>
-      </Stats>
+      <div className="flex gap-lg mb-lg p-md bg-gray-50 rounded-md">
+        <div className="flex flex-col gap-xs">
+          <div className="text-4xl font-semibold text-primary">
+            {sessions.length}
+          </div>
+          <div className="text-sm text-gray-600 uppercase tracking-wider">
+            Total Sessions
+          </div>
+        </div>
+        <div className="flex flex-col gap-xs">
+          <div className="text-4xl font-semibold text-primary">{totalQAs}</div>
+          <div className="text-sm text-gray-600 uppercase tracking-wider">
+            Total Q&As
+          </div>
+        </div>
+        <div className="flex flex-col gap-xs">
+          <div className="text-4xl font-semibold text-primary">
+            {averageScore.toFixed(1)}
+          </div>
+          <div className="text-sm text-gray-600 uppercase tracking-wider">
+            Average Score
+          </div>
+        </div>
+      </div>
 
       {sessions.length === 0 ? (
-        <EmptyState>
+        <div className="text-center p-xl text-gray-500">
           <p>No interview sessions found.</p>
           <p>Start an interview to see results here.</p>
-        </EmptyState>
+        </div>
       ) : (
-        <SessionsList>
+        <div className="flex flex-col gap-lg">
           {sessions.map((session) => (
-            <SessionCard key={session.id}>
-              <SessionHeader>
-                <SessionInfo>
-                  <SessionId>Session: {session.id.substring(0, 8)}...</SessionId>
-                  <SessionDate>{formatDate(session.createdAt)}</SessionDate>
-                </SessionInfo>
-                <StatusBadge status={session.status}>
+            <div
+              key={session.id}
+              className="bg-white rounded-lg p-lg shadow-md transition-all duration-normal flex flex-col gap-md"
+            >
+              <div className="flex justify-between items-center pb-sm border-b border-gray-200">
+                <div className="flex flex-col gap-xs">
+                  <div className="text-sm font-mono text-gray-600">
+                    Session: {session.id.substring(0, 8)}...
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {formatDate(session.createdAt)}
+                  </div>
+                </div>
+                <span className={getStatusBadgeClasses(session.status)}>
                   {session.status}
-                </StatusBadge>
-              </SessionHeader>
+                </span>
+              </div>
 
-              <QAsSection>
-                <QAsHeader>
+              <div className="flex flex-col gap-md">
+                <div className="text-base font-semibold text-gray-700">
                   Q&As ({session.qas?.length || 0})
-                </QAsHeader>
+                </div>
                 {session.qas && session.qas.length > 0 ? (
                   session.qas.map((qa) => (
-                    <QACard key={qa.id}>
-                      <Question>Q: {qa.question}</Question>
-                      <Answer>A: {qa.answer}</Answer>
+                    <div
+                      key={qa.id}
+                      className="p-md bg-gray-50 rounded-md border-l-4 border-primary"
+                    >
+                      <div className="font-semibold text-gray-900 mb-2">
+                        <span className="text-primary">Q:</span> {qa.question}
+                      </div>
+                      <div className="bg-white p-3 rounded border border-gray-200 mb-3">
+                        <div className="text-sm font-medium text-gray-600 mb-1">
+                          Your Answer:
+                        </div>
+                        <div className="text-gray-900">
+                          {qa.answer || "No answer provided"}
+                        </div>
+                      </div>
                       {qa.evaluation && (
-                        <Evaluation>
-                          <Score score={qa.evaluation.score}>
+                        <div className="flex flex-col gap-xs pt-sm border-t border-gray-200">
+                          <div
+                            className={`font-semibold ${getScoreColor(
+                              qa.evaluation.score
+                            )}`}
+                          >
                             Score: {qa.evaluation.score}/10
-                          </Score>
+                          </div>
                           {qa.evaluation.feedback && (
-                            <Feedback>{qa.evaluation.feedback}</Feedback>
+                            <div className="text-gray-600 text-sm">
+                              {qa.evaluation.feedback}
+                            </div>
                           )}
-                        </Evaluation>
+                        </div>
                       )}
-                    </QACard>
+                    </div>
                   ))
                 ) : (
-                  <EmptyState style={{ padding: "1rem" }}>
+                  <div className="text-center p-4 text-gray-500">
                     No Q&As recorded for this session yet.
-                  </EmptyState>
+                  </div>
                 )}
-              </QAsSection>
-            </SessionCard>
+              </div>
+            </div>
           ))}
-        </SessionsList>
+        </div>
       )}
-    </Container>
+    </div>
   );
 }
-
