@@ -192,6 +192,11 @@ export const realtimeInterviewService = {
     const response = await api.post(`/interview/session/${sessionId}/complete`);
     return response.data;
   },
+
+  getAllSessions: async () => {
+    const response = await api.get("/interview/sessions");
+    return response.data;
+  },
 };
 
 export default api;

@@ -10,6 +10,7 @@ import { ThemeProvider } from "./lib/ThemeProvider";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import RealtimeInterview from "./components/RealtimeInterview";
+import InterviewDashboard from "./components/InterviewDashboard";
 import "./App.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -64,6 +65,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <RealtimeInterview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <InterviewDashboard />
                   </ProtectedRoute>
                 }
               />

@@ -37,21 +37,43 @@ export function useRealtimeInterview() {
           }),
           strict: true,
           execute: async ({ question, answer, score, feedback }) => {
+            console.log("[Tool] evaluate_answer called:", {
+              question: question?.substring(0, 50) + "...",
+              answer: answer?.substring(0, 50) + "...",
+              score,
+              feedback: feedback?.substring(0, 50) + "...",
+              sessionId: sessionIdRef.current,
+            });
+
             // Log evaluation to backend
             if (sessionIdRef.current) {
               try {
-                await realtimeInterviewService.logEvaluation(
+                console.log("[Tool] Calling backend to log evaluation...");
+                const result = await realtimeInterviewService.logEvaluation(
                   sessionIdRef.current,
                   question,
                   answer,
                   score,
                   feedback
                 );
+                console.log("[Tool] Evaluation logged successfully:", result);
+                return { success: true, message: "Evaluation saved" };
               } catch (err) {
-                console.error("Failed to log evaluation:", err);
+                console.error("[Tool] Failed to log evaluation:", err);
+                return {
+                  success: false,
+                  error: err.message || "Failed to save evaluation",
+                };
               }
+            } else {
+              console.warn(
+                "[Tool] No sessionId available, cannot log evaluation"
+              );
+              return {
+                success: false,
+                error: "No active session",
+              };
             }
-            return { success: true };
           },
         }),
       ],
