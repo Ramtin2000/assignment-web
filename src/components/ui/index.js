@@ -1,5 +1,5 @@
 // Button components
-export { Button, default as ButtonDefault } from './Button';
+export { Button, default as ButtonDefault } from "./Button";
 
 // Dashboard components
 export {
@@ -28,19 +28,21 @@ export {
   containerVariants,
   itemVariants,
   spinnerVariants,
-} from './Dashboard';
+} from "./Dashboard";
 
 // Badge components
-export { Badge, ScoreBadge, default as BadgeDefault } from './Badge';
+export { Badge, ScoreBadge, default as BadgeDefault } from "./Badge";
 
 // Utility components
-export { Loading, default as LoadingDefault } from './Loading';
-export { Error, default as ErrorDefault } from './Error';
-export { BackButton, default as BackButtonDefault } from './BackButton';
+export { Loading, default as LoadingDefault } from "./Loading";
+export { Error, default as ErrorDefault } from "./Error";
+export { BackButton, default as BackButtonDefault } from "./BackButton";
 
 // Navigation
-export { SideNav, default as SideNavDefault } from './SideNav';
+export { SideNav, default as SideNavDefault } from "./SideNav";
 
 // Tag Input
-export { TagInput, default as TagInputDefault } from './TagInput';
+export { TagInput, default as TagInputDefault } from "./TagInput";
 
+// Metrics
+export { MetricsCard, default as MetricsCardDefault } from "./MetricsCard";

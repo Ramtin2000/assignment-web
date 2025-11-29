@@ -184,18 +184,14 @@ const EvaluationsDashboard = () => {
               </CardHeader>
 
               <CardBody>
-                <CardTitle style={{ marginBottom: "0.5rem" }}>
-                  Interview Session
-                </CardTitle>
-                <CardSubtitle>
-                  Completed: {formatDate(session.completedAt)}
-                </CardSubtitle>
-
                 {session.summary && (
                   <div style={{ marginTop: "1rem" }}>
                     <SummaryPreview>{session.summary}</SummaryPreview>
                   </div>
                 )}
+                <CardSubtitle>
+                  Completed: {formatDate(session.completedAt)}
+                </CardSubtitle>
               </CardBody>
 
               <CardFooter>

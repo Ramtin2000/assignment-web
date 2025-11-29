@@ -320,7 +320,6 @@ const InterviewSession = () => {
               <InfoTitle>What happens next?</InfoTitle>
               <InfoList>
                 <li>Our AI will analyze your responses</li>
-                <li>You will receive a detailed report via email</li>
                 <li>The hiring team will review your performance</li>
               </InfoList>
             </InfoBox>

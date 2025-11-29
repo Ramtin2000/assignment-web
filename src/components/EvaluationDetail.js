@@ -14,6 +14,7 @@ import {
   ScoreBadge,
   Loading,
   Error,
+  MetricsCard,
 } from "./ui";
 import styled from "styled-components";
 import { motion } from "framer-motion";
@@ -32,8 +33,7 @@ const ScoreContent = styled.div`
 
 const ScoreValue = styled(ScoreBadge)`
   font-size: 2rem;
-  padding: ${(props) => props.theme.spacing.md}
-    ${(props) => props.theme.spacing.lg};
+  padding: ${(props) => `${props.theme.spacing.md} ${props.theme.spacing.lg}`};
   font-weight: 700;
 `;
 
@@ -207,6 +207,13 @@ const QuestionsSection = styled(motion.div)`
   gap: ${(props) => props.theme.spacing.lg};
 `;
 
+const MetricsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: ${(props) => props.theme.spacing.lg};
+  margin-bottom: ${(props) => props.theme.spacing.lg};
+`;
+
 const EvaluationDetail = () => {
   const { id } = useParams();
   const [session, setSession] = useState(null);
@@ -309,6 +316,68 @@ const EvaluationDetail = () => {
               : "N/A"}
           </ScoreValue>
         </ScoreCard>
+
+        {(session.skillBreakdown ||
+          session.categoryBreakdown ||
+          session.performanceMetrics) && (
+          <MetricsGrid>
+            {session.skillBreakdown && session.skillBreakdown.length > 0 && (
+              <MetricsCard
+                title="Skill Breakdown"
+                items={session.skillBreakdown.map((item) => ({
+                  label: item.skill,
+                  averageScore: item.averageScore,
+                  questionCount: item.questionCount,
+                }))}
+              />
+            )}
+
+            {session.categoryBreakdown &&
+              session.categoryBreakdown.length > 0 && (
+                <MetricsCard
+                  title="Category Breakdown"
+                  items={session.categoryBreakdown.map((item) => ({
+                    label: item.category,
+                    averageScore: item.averageScore,
+                    questionCount: item.questionCount,
+                  }))}
+                />
+              )}
+
+            {session.performanceMetrics && (
+              <DashboardCard>
+                <CardTitle style={{ marginBottom: "0.5rem" }}>
+                  Score Distribution
+                </CardTitle>
+                <CardBody>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1.5rem",
+                      fontSize: "0.9rem",
+                      color: "#4b5563",
+                    }}
+                  >
+                    <div>
+                      <strong>Min</strong>
+                      <div>{session.performanceMetrics.min.toFixed(1)}/10</div>
+                    </div>
+                    <div>
+                      <strong>Median</strong>
+                      <div>
+                        {session.performanceMetrics.median.toFixed(1)}/10
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Max</strong>
+                      <div>{session.performanceMetrics.max.toFixed(1)}/10</div>
+                    </div>
+                  </div>
+                </CardBody>
+              </DashboardCard>
+            )}
+          </MetricsGrid>
+        )}
 
         {session.summary && (
           <DashboardCard
