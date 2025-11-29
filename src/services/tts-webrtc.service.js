@@ -11,6 +11,8 @@ class TTSWebRTCService {
     // TTS audio playback
     this.audioContext = null;
     this.ttsAudioElement = null;
+    this.currentUtterance = null;
+    this.ttsStartTime = null;
   }
 
   // Event emitter methods
@@ -337,18 +339,43 @@ class TTSWebRTCService {
         return;
       }
 
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
+      // Store utterance reference for timing access
+      this.currentUtterance = utterance;
+      this.ttsStartTime = null;
+
+      utterance.onstart = () => {
+        this.ttsStartTime = Date.now();
+        console.log("Web Speech TTS started");
+        // Emit tts-started event with timing information
+        this.emit("tts-started", {
+          startTime: this.ttsStartTime,
+          text: text,
+          textLength: text.length,
+          utterance: utterance,
+        });
+      };
+
       utterance.onend = () => {
-        console.log("Web Speech TTS completed");
+        const duration = this.ttsStartTime ? Date.now() - this.ttsStartTime : null;
+        console.log("Web Speech TTS completed", duration ? `(duration: ${duration}ms)` : "");
+        this.currentUtterance = null;
+        this.ttsStartTime = null;
+        this.emit("tts-completed", { duration });
         resolve();
       };
 
       utterance.onerror = (error) => {
         console.error("Web Speech TTS error:", error);
+        this.currentUtterance = null;
+        this.ttsStartTime = null;
         reject(error);
       };
 
@@ -358,6 +385,11 @@ class TTSWebRTCService {
   }
 
   cleanup() {
+    // Cancel any ongoing TTS
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
     if (this.dataChannel) {
       this.dataChannel.close();
       this.dataChannel = null;
@@ -379,6 +411,8 @@ class TTSWebRTCService {
       this.audioContext = null;
     }
 
+    this.currentUtterance = null;
+    this.ttsStartTime = null;
     this.isConnected = false;
     this.isConnecting = false;
   }

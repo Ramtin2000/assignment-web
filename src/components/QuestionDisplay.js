@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
+import ttsService from "../services/tts-webrtc.service";
 
 // Word fade-in animation for TTS sync
 const fadeInWord = keyframes`
@@ -69,94 +70,243 @@ const QuestionDisplay = ({
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const wordsRef = useRef([]);
-  const utteranceRef = useRef(null);
+  const animationTimerRef = useRef(null);
+  const ttsStartTimeRef = useRef(null);
+  const wordTimingsRef = useRef([]);
+  const currentQuestionIdRef = useRef(null);
+  const currentQuestionTextRef = useRef(null);
+  const isReadingRef = useRef(false);
 
   // Reset when question changes
   useEffect(() => {
     if (question?.text || question?.content) {
       const fullText = question.text || question.content;
+      const questionId = question?.id || question?.index || questionNumber;
+
+      // Update question tracking refs
+      currentQuestionIdRef.current = questionId;
+      currentQuestionTextRef.current = fullText;
+
       wordsRef.current = fullText.split(/(\s+)/);
       setDisplayedText("");
       setCurrentWordIndex(0);
       setIsSpeaking(false);
-    }
-  }, [question?.text, question?.content]);
+      ttsStartTimeRef.current = null;
+      wordTimingsRef.current = [];
 
-  // TTS sync: Display words as they're spoken
+      // Clear any pending animation timers
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+
+      // Calculate word timings based on character count
+      // Speech rate: ~150 words/min = ~400ms/word average
+      // Adjust for word length: base 200ms + ~30ms per character
+      const words = wordsRef.current;
+      let cumulativeTime = 0;
+      wordTimingsRef.current = words.map((word) => {
+        const trimmedWord = word.trim();
+        // Calculate duration: base 200ms + ~30ms per character (for non-whitespace words)
+        const wordTime =
+          trimmedWord.length > 0
+            ? Math.min(200 + trimmedWord.length * 30, 1200) // Cap at 1.2s per word
+            : 0; // Whitespace has no duration
+        const startTime = cumulativeTime;
+        cumulativeTime += wordTime;
+
+        return {
+          word,
+          duration: wordTime,
+          startTime: startTime,
+          endTime: cumulativeTime,
+        };
+      });
+    }
+  }, [
+    question?.text,
+    question?.content,
+    question?.id,
+    question?.index,
+    questionNumber,
+  ]);
+
+  // Update isReading ref when prop changes
   useEffect(() => {
-    if (!isReading || !wordsRef.current.length) {
-      if (!isReading) {
-        // Reset when not reading
-        setDisplayedText("");
-        setCurrentWordIndex(0);
-        setIsSpeaking(false);
+    isReadingRef.current = isReading;
+  }, [isReading]);
+
+  // Listen to TTS events and sync animation - ALWAYS active listeners
+  useEffect(() => {
+    const handleTTSStarted = (data) => {
+      // Check if we should respond to this TTS event
+      const ttsText = data?.text || "";
+      const currentText = currentQuestionTextRef.current || "";
+
+      // Match TTS text with current question text to ensure we're responding to the right question
+      // Allow for minor differences (whitespace, etc.)
+      const normalizeText = (text) => text.trim().replace(/\s+/g, " ");
+      const ttsTextNormalized = normalizeText(ttsText);
+      const currentTextNormalized = normalizeText(currentText);
+
+      // First check: Do we have basic requirements (words array populated)?
+      if (!wordsRef.current.length) {
+        console.log("Not ready for animation - missing words:", {
+          wordsLength: wordsRef.current.length,
+        });
+        return;
       }
-      return;
-    }
 
-    setIsSpeaking(true);
-    setDisplayedText("");
-    setCurrentWordIndex(0);
-
-    // Progressive word display with timing estimation
-    // Estimate: ~150 words per minute = ~400ms per word average
-    // Adjust based on actual word length for better accuracy
-    let wordIndex = 0;
-    const startTime = Date.now();
-
-    const displayNextWord = () => {
-      if (wordIndex < wordsRef.current.length) {
-        const word = wordsRef.current[wordIndex];
-        // Estimate timing: base 300ms + 50ms per character (up to 800ms max)
-        const wordTime = Math.min(300 + word.length * 50, 800);
-        const elapsed = Date.now() - startTime;
-        const expectedTime =
-          wordIndex === 0
-            ? 0
-            : wordsRef.current
-                .slice(0, wordIndex)
-                .reduce(
-                  (sum, w) => sum + Math.min(300 + w.length * 50, 800),
-                  0
-                );
-
-        if (elapsed >= expectedTime) {
-          setCurrentWordIndex(wordIndex + 1);
-          setDisplayedText(wordsRef.current.slice(0, wordIndex + 1).join(""));
-          wordIndex++;
-
-          // Schedule next word
-          const nextWordTime = Math.min(300 + word.length * 50, 800);
-          setTimeout(
-            displayNextWord,
-            Math.max(0, nextWordTime - (Date.now() - startTime - expectedTime))
+      // Second check: Verify this TTS event is for the current question
+      // Use text matching if we have both, otherwise allow if we have words and TTS text
+      if (currentTextNormalized && ttsTextNormalized) {
+        // We have both texts - they must match
+        if (ttsTextNormalized !== currentTextNormalized) {
+          console.log(
+            "TTS event text doesn't match current question, ignoring",
+            {
+              ttsText: ttsTextNormalized.substring(0, 50) + "...",
+              currentText: currentTextNormalized.substring(0, 50) + "...",
+            }
           );
-        } else {
-          // Check again soon
-          setTimeout(displayNextWord, 50);
+          return;
         }
-      } else {
-        // All words displayed
-        setDisplayedText(wordsRef.current.join(""));
-        setCurrentWordIndex(wordsRef.current.length);
-        setIsSpeaking(false);
+      } else if (!currentTextNormalized && ttsTextNormalized) {
+        // We have TTS text but not current question text yet
+        // This can happen when question just changed - try to match against words we have
+        const wordsText = wordsRef.current.join("").trim();
+        const wordsTextNormalized = normalizeText(wordsText);
+
+        if (wordsTextNormalized && ttsTextNormalized !== wordsTextNormalized) {
+          console.log(
+            "TTS text doesn't match words we have, waiting for question text"
+          );
+          // Still proceed - it might be a timing issue
+        }
       }
+
+      // Store the actual TTS start time
+      ttsStartTimeRef.current = data.startTime || Date.now();
+
+      // Reset display
+      setDisplayedText("");
+      setCurrentWordIndex(0);
+      setIsSpeaking(true);
+
+      // Clear any existing animation timer
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+
+      // Start the synchronized word display animation
+      let wordIndex = 0;
+
+      const displayNextWord = () => {
+        // Check if question has changed during animation
+        const stillCurrent =
+          currentQuestionTextRef.current === normalizeText(ttsText);
+        if (!stillCurrent) {
+          console.log("Question changed during animation, stopping");
+          return;
+        }
+
+        if (
+          !ttsStartTimeRef.current ||
+          wordIndex >= wordTimingsRef.current.length
+        ) {
+          // All words displayed or TTS not started
+          if (wordIndex >= wordTimingsRef.current.length) {
+            setDisplayedText(wordsRef.current.join(""));
+            setCurrentWordIndex(wordsRef.current.length);
+            setIsSpeaking(false);
+          }
+          return;
+        }
+
+        const currentTime = Date.now();
+        const elapsed = currentTime - ttsStartTimeRef.current;
+
+        // Catch up: find the current word that should be displayed
+        while (wordIndex < wordTimingsRef.current.length) {
+          const wordTiming = wordTimingsRef.current[wordIndex];
+
+          if (elapsed >= wordTiming.startTime) {
+            // This word should be displayed
+            wordIndex++;
+            setCurrentWordIndex(wordIndex);
+            setDisplayedText(wordsRef.current.slice(0, wordIndex).join(""));
+          } else {
+            // Reached a word that hasn't been spoken yet
+            break;
+          }
+        }
+
+        // Check if all words are displayed
+        if (wordIndex >= wordTimingsRef.current.length) {
+          setDisplayedText(wordsRef.current.join(""));
+          setCurrentWordIndex(wordsRef.current.length);
+          setIsSpeaking(false);
+          return;
+        }
+
+        // Schedule next check
+        const nextWordTiming = wordTimingsRef.current[wordIndex];
+        const delay = Math.max(
+          10,
+          Math.min(50, nextWordTiming.startTime - elapsed)
+        );
+        animationTimerRef.current = setTimeout(displayNextWord, delay);
+      };
+
+      // Start animation immediately
+      displayNextWord();
     };
 
-    // Start displaying words
-    displayNextWord();
+    const handleTTSCompleted = () => {
+      // Only complete animation if we're still on the same question
+      if (!currentQuestionTextRef.current) return;
 
-    // Fallback: ensure all text is shown after reasonable time (safety net)
-    const fallbackTimeout = setTimeout(() => {
+      // Ensure all text is displayed when TTS completes
       setDisplayedText(wordsRef.current.join(""));
       setCurrentWordIndex(wordsRef.current.length);
       setIsSpeaking(false);
-    }, wordsRef.current.length * 500); // Max 500ms per word
+
+      // Clear any pending timers
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    };
+
+    // Register event listeners - these are always active
+    ttsService.on("tts-started", handleTTSStarted);
+    ttsService.on("tts-completed", handleTTSCompleted);
 
     return () => {
-      clearTimeout(fallbackTimeout);
-      setIsSpeaking(false);
+      ttsService.off("tts-started", handleTTSStarted);
+      ttsService.off("tts-completed", handleTTSCompleted);
+
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
     };
+  }, []); // Empty dependency array - listeners are always active
+
+  // Reset when not reading - but preserve question text display
+  useEffect(() => {
+    if (!isReading) {
+      // Don't reset displayedText if we have question content - keep it visible
+      // Only reset animation state
+      setIsSpeaking(false);
+      ttsStartTimeRef.current = null;
+
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    }
   }, [isReading]);
 
   if (!question) {
