@@ -64,7 +64,7 @@ class TranscriptionWebRTCService {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
 
-      // Add audio track to peer connection
+      // Add audio track to peer connection (for transcription input)
       audioStream.getTracks().forEach((track) => {
         this.pc.addTrack(track, audioStream);
       });
@@ -80,7 +80,7 @@ class TranscriptionWebRTCService {
       // Set up ICE connection state handlers
       this.setupICEHandlers();
 
-      // Create SDP offer
+      // Create SDP offer (only sending audio, not receiving)
       const offer = await this.pc.createOffer({
         offerToReceiveAudio: false,
         offerToReceiveVideo: false,

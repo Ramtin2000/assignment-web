@@ -49,41 +49,25 @@ export const useInterview = (interviewId) => {
     }
   }, [interviewId]);
 
-  const submitAnswer = useCallback(
-    async (transcription) => {
-      if (!sessionId || !transcription) {
-        setError("Session ID and transcription are required");
-        return;
-      }
-      setStatus("processing");
-      try {
-        const questionId =
-          currentQuestion?.id || `question-${currentQuestionIndex}`;
-        await interviewService.submitAnswer(
-          sessionId,
-          questionId,
-          currentQuestionIndex,
-          transcription
-        );
-        setAnswers((prev) => [
-          ...prev,
-          {
-            questionIndex: currentQuestionIndex,
-            transcription,
-          },
-        ]);
-      } catch (error) {
-        console.error("Error submitting answer:", error);
-        setError(
-          error.response?.data?.message ||
-            error.message ||
-            "Failed to submit answer"
-        );
-        setStatus("ready");
-      }
-    },
-    [sessionId, currentQuestionIndex, currentQuestion]
-  );
+  const completeInterview = useCallback(async () => {
+    if (!sessionId) {
+      setError("Session ID is required");
+      return;
+    }
+    try {
+      const data = await interviewService.completeInterviewSession(sessionId);
+      setEvaluations(data.evaluations || []);
+      setStatus("complete");
+      setIsComplete(true);
+    } catch (error) {
+      console.error("Error completing interview:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to complete interview"
+      );
+    }
+  }, [sessionId]);
 
   const nextQuestion = useCallback(async () => {
     if (!sessionId) {
@@ -95,10 +79,19 @@ export const useInterview = (interviewId) => {
       const data = await interviewService.getNextQuestion(sessionId);
 
       if (data.questionText === null) {
-        // No more questions
+        // No more questions - automatically submit for evaluation
         setStatus("complete");
         setIsComplete(true);
         setIsLastQuestion(true);
+
+        // Automatically submit for evaluation when complete
+        setTimeout(async () => {
+          try {
+            await completeInterview();
+          } catch (error) {
+            console.error("Error completing interview:", error);
+          }
+        }, 1000);
         return;
       }
 
@@ -123,27 +116,49 @@ export const useInterview = (interviewId) => {
       );
       setStatus("ready");
     }
-  }, [sessionId]);
+  }, [sessionId, completeInterview]);
 
-  const completeInterview = useCallback(async () => {
-    if (!sessionId) {
-      setError("Session ID is required");
-      return;
-    }
-    try {
-      const data = await interviewService.completeInterviewSession(sessionId);
-      setEvaluations(data.evaluations || []);
-      setStatus("complete");
-      setIsComplete(true);
-    } catch (error) {
-      console.error("Error completing interview:", error);
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to complete interview"
-      );
-    }
-  }, [sessionId]);
+  const submitAnswer = useCallback(
+    async (transcription) => {
+      if (!sessionId || !transcription) {
+        setError("Session ID and transcription are required");
+        return;
+      }
+      setStatus("processing");
+      try {
+        const questionId =
+          currentQuestion?.id || `question-${currentQuestionIndex}`;
+        await interviewService.submitAnswer(
+          sessionId,
+          questionId,
+          currentQuestionIndex,
+          transcription
+        );
+        setAnswers((prev) => [
+          ...prev,
+          {
+            questionIndex: currentQuestionIndex,
+            transcription,
+          },
+        ]);
+
+        // Automatically advance to next question after successful submission
+        // Wait a moment for the answer to be processed
+        setTimeout(async () => {
+          await nextQuestion();
+        }, 500);
+      } catch (error) {
+        console.error("Error submitting answer:", error);
+        setError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to submit answer"
+        );
+        setStatus("ready");
+      }
+    },
+    [sessionId, currentQuestionIndex, currentQuestion, nextQuestion]
+  );
 
   return {
     sessionId,

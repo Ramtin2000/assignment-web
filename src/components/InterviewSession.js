@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import QuestionDisplay from "./QuestionDisplay";
 import TranscriptDisplay from "./TranscriptDisplay";
 import { useCallback } from "react";
+import ttsService from "../services/tts-webrtc.service";
 
 const InterviewSession = () => {
   const { interviewId } = useParams();
@@ -26,12 +27,17 @@ const InterviewSession = () => {
 
   const [transcript, setTranscript] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
+  const [isReadingQuestion, setIsReadingQuestion] = useState(false);
   const transcriptRef = useRef("");
   const stopRecordingRef = useRef(null);
   const submitAnswerRef = useRef(null);
   const clearTranscriptionRef = useRef(null);
   const nextQuestionRef = useRef(null);
   const isLastQuestionRef = useRef(false);
+  const startRecordingRef = useRef(null);
+  const isRecordingRef = useRef(false);
+  const hasReadQuestionRef = useRef(false);
+  const currentQuestionIdRef = useRef(null);
 
   // Update refs when values change
   useEffect(() => {
@@ -49,7 +55,7 @@ const InterviewSession = () => {
     }
   }, []);
 
-  const handleTranscriptionComplete = useCallback((data) => {
+  const handleTranscriptionComplete = useCallback(async (data) => {
     // Handle final transcription
     const finalTranscript = data.text;
     setTranscript(finalTranscript);
@@ -68,10 +74,11 @@ const InterviewSession = () => {
       if (stopRecordingRef.current) stopRecordingRef.current();
 
       // Wait a bit to ensure everything is clean then submit
-      setTimeout(() => {
+      setTimeout(async () => {
         if (submitAnswerRef.current) {
           console.log("Submitting answer:", finalTranscript);
-          submitAnswerRef.current(finalTranscript);
+          await submitAnswerRef.current(finalTranscript);
+          // After submitting, nextQuestion will be called automatically by useInterview
         }
       }, 500);
     }
@@ -94,7 +101,16 @@ const InterviewSession = () => {
     submitAnswerRef.current = submitAnswer;
     nextQuestionRef.current = nextQuestion;
     clearTranscriptionRef.current = clearTranscription;
-  }, [stopRecording, submitAnswer, nextQuestion, clearTranscription]);
+    startRecordingRef.current = startRecording;
+    isRecordingRef.current = isRecording;
+  }, [
+    stopRecording,
+    submitAnswer,
+    nextQuestion,
+    clearTranscription,
+    startRecording,
+    isRecording,
+  ]);
 
   // Start interview when component mounts
   useEffect(() => {
@@ -104,21 +120,60 @@ const InterviewSession = () => {
     }
   }, [hasStarted, startInterview, token, interviewId]);
 
-  // Reset transcript and start recording when question changes
+  // Reset transcript, read question with TTS, then start recording when question changes
   useEffect(() => {
-    if (currentQuestion && status === "ready") {
+    // Only read if we have a question, status is ready, not already reading, and this is a new question
+    if (
+      currentQuestion &&
+      status === "ready" &&
+      !isReadingQuestion &&
+      currentQuestion.id !== currentQuestionIdRef.current
+    ) {
+      // Mark this question as being processed
+      currentQuestionIdRef.current = currentQuestion.id;
+      hasReadQuestionRef.current = false;
+
       transcriptRef.current = "";
       setTranscript("");
       if (clearTranscriptionRef.current) clearTranscriptionRef.current();
 
-      // Start recording when question is ready
-      // The transcription session will be created automatically by useAudioCapture
-      if (startRecording && !isRecording) {
-        console.log("Starting recording for new question...");
-        startRecording();
-      }
+      // Read question with TTS first, then start transcription
+      const readQuestionAndStartRecording = async () => {
+        // Prevent multiple calls
+        if (hasReadQuestionRef.current) {
+          console.log("Question already read, skipping...");
+          return;
+        }
+
+        setIsReadingQuestion(true);
+        hasReadQuestionRef.current = true;
+
+        try {
+          console.log("Reading question with TTS:", currentQuestion.text);
+
+          // TTS service uses Web Speech API (no WebRTC connection needed)
+          // Wait for TTS to complete
+          await ttsService.speakText(currentQuestion.text);
+          console.log("TTS completed, starting recording...");
+
+          // Start recording after TTS completes
+          if (startRecordingRef.current && !isRecordingRef.current) {
+            startRecordingRef.current();
+          }
+        } catch (error) {
+          console.error("Error reading question with TTS:", error);
+          // If TTS fails, still start recording
+          if (startRecordingRef.current && !isRecordingRef.current) {
+            startRecordingRef.current();
+          }
+        } finally {
+          setIsReadingQuestion(false);
+        }
+      };
+
+      readQuestionAndStartRecording();
     }
-  }, [currentQuestion, status, startRecording, isRecording]);
+  }, [currentQuestion, status, isReadingQuestion]);
 
   // Handle completion
   useEffect(() => {
@@ -220,7 +275,13 @@ const InterviewSession = () => {
             isListening={isRecording}
           />
           <div className="mt-4 flex justify-between items-center text-sm text-gray-500">
-            <span>{isRecording ? "Listening..." : "Waiting for audio..."}</span>
+            <span>
+              {isRecording
+                ? "Listening..."
+                : isReadingQuestion
+                ? "Reading question..."
+                : "Waiting for audio..."}
+            </span>
             <span>VAD: Server-side (Realtime API)</span>
           </div>
         </div>
