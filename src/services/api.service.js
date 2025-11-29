@@ -161,4 +161,37 @@ export const transcriptionService = {
   },
 };
 
+export const realtimeInterviewService = {
+  createSession: async () => {
+    const response = await api.post("/interview/session");
+    return response.data;
+  },
+
+  getToken: async (sessionId) => {
+    const response = await api.post("/interview/token", { sessionId });
+    return response.data;
+  },
+
+  logEvaluation: async (sessionId, question, answer, score, feedback) => {
+    const response = await api.post("/interview/log-evaluation", {
+      sessionId,
+      question,
+      answer,
+      score,
+      feedback,
+    });
+    return response.data;
+  },
+
+  getSession: async (sessionId) => {
+    const response = await api.get(`/interview/session/${sessionId}`);
+    return response.data;
+  },
+
+  completeSession: async (sessionId) => {
+    const response = await api.post(`/interview/session/${sessionId}/complete`);
+    return response.data;
+  },
+};
+
 export default api;

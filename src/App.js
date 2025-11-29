@@ -9,11 +9,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./lib/ThemeProvider";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import InterviewGenerator from "./components/InterviewGenerator";
-import InterviewSession from "./components/InterviewSession";
-import EvaluationsDashboard from "./components/EvaluationsDashboard";
-import EvaluationDetail from "./components/EvaluationDetail";
-import Layout from "./components/Layout";
+import RealtimeInterview from "./components/RealtimeInterview";
 import "./App.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -64,42 +60,10 @@ function App() {
                 }
               />
               <Route
-                path="/interviews"
+                path="/interview"
                 element={
                   <ProtectedRoute>
-                    <Layout>
-                      <InterviewGenerator />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/interview/:interviewId"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <InterviewSession />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/evaluations"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <EvaluationsDashboard />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/evaluation/:id"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <EvaluationDetail />
-                    </Layout>
+                    <RealtimeInterview />
                   </ProtectedRoute>
                 }
               />
