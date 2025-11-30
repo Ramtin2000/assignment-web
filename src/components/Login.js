@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "./ui/Button";
+import {
+  DashboardContainer,
+  DashboardCard,
+  CardHeader,
+  CardTitle,
+  CardBody,
+} from "./ui/Dashboard";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -26,52 +33,81 @@ const Login = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto my-12 p-5">
-      <h2 className="text-3xl font-semibold text-gray-900 mb-6">Login</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email:
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md text-base transition-all duration-150 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
+    <DashboardContainer>
+      <div className="flex items-center justify-center flex-1 py-xl px-md">
+        <div className="w-full max-w-md min-w-[420px]">
+          <DashboardCard className="shadow-lg">
+            <CardHeader className="pb-md">
+              <CardTitle className="text-2xl">Login</CardTitle>
+            </CardHeader>
+            <CardBody className="pt-0">
+              <form onSubmit={handleSubmit} className="space-y-lg">
+                <div className="space-y-xs">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-md py-sm bg-white border border-gray-300 rounded-lg text-base transition-all duration-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-gray-400"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="space-y-xs">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-md py-sm bg-white border border-gray-300 rounded-lg text-base transition-all duration-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-gray-400"
+                    placeholder="Enter your password"
+                  />
+                </div>
+                {error && (
+                  <div className="p-sm bg-danger/10 text-danger rounded-lg border border-danger/30 text-sm">
+                    {error}
+                  </div>
+                )}
+                <div className="pt-sm">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    fullWidth
+                    disabled={loading}
+                  >
+                    {loading ? "Logging in..." : "Login"}
+                  </Button>
+                </div>
+              </form>
+              <div className="mt-lg pt-lg border-t border-gray-200">
+                <p className="text-center text-sm text-gray-600">
+                  Don't have an account?{" "}
+                  <Link
+                    to="/register"
+                    className="text-primary hover:text-primary-dark font-medium transition-colors"
+                  >
+                    Register
+                  </Link>
+                </p>
+              </div>
+            </CardBody>
+          </DashboardCard>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Password:
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md text-base transition-all duration-150 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-        {error && (
-          <div className="p-3 bg-danger/20 text-danger rounded-md border border-danger/40">
-            {error}
-          </div>
-        )}
-        <Button type="submit" variant="primary" fullWidth disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </Button>
-      </form>
-      <p className="mt-4 text-center text-gray-600">
-        Don't have an account?{" "}
-        <a
-          href="/register"
-          className="text-primary hover:text-primary-dark font-medium"
-        >
-          Register
-        </a>
-      </p>
-    </div>
+      </div>
+    </DashboardContainer>
   );
 };
 
