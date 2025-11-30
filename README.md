@@ -1,70 +1,141 @@
-# Getting Started with Create React App
+# Interview Platform - Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern React application for conducting AI-powered technical interviews with real-time voice interaction.
+
+## Tech Stack
+
+- **React 19** - UI framework
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animations
+- **React Router** - Navigation
+- **OpenAI Realtime API** - Real-time voice interviews
+- **Axios** - HTTP client
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+- Running backend API (see `assignment-api/README.md`)
+
+## Getting Started
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+### 3. Start Development Server
+
+```bash
+npm run dev
+# or
+npm start
+```
+
+The application will start on [http://localhost:3001](http://localhost:3001) (or the next available port).
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm run dev` / `npm start` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm test` - Run tests
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+src/
+├── components/          # React components
+│   ├── ui/            # Reusable UI components
+│   ├── Login.js       # Authentication
+│   ├── Register.js    # User registration
+│   ├── RealtimeInterview.js  # Main interview component
+│   └── ...
+├── hooks/              # Custom React hooks
+│   └── useRealtimeInterview.js  # Interview logic hook
+├── context/           # React context providers
+│   ├── AuthContext.js
+│   └── SideNavContext.js
+├── services/          # API services
+│   └── api.service.js
+└── lib/              # Utilities and config
+    └── theme.js
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Features
 
-### `npm test`
+- ✅ User authentication (Login/Register)
+- ✅ Real-time voice interviews using OpenAI Realtime API
+- ✅ Interview session management
+- ✅ Skill-based interview generation
+- ✅ Live transcript display
+- ✅ Interview evaluation and feedback
+- ✅ Responsive dashboard UI
+- ✅ Modern, polished design system
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Key Components
 
-### `npm run build`
+### RealtimeInterview
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Main component for conducting interviews with step-based flow:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- **Skills Selection** - Choose skills to be interviewed on
+- **Preparation** - Review selected skills before starting
+- **Active Interview** - Real-time voice interview with transcript
+- **Done** - Interview completion with results
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### useRealtimeInterview Hook
 
-### `npm run eject`
+Custom hook managing:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- OpenAI Realtime Agent connection
+- Audio transcription
+- Interview state management
+- Question tracking
+- User input blocking during assistant speech
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## UI Components
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+See `src/components/ui/README.md` for detailed component documentation.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Development
 
-## Learn More
+The project uses:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Vite** for fast HMR (Hot Module Replacement)
+- **Tailwind CSS** for utility-first styling
+- **Framer Motion** for smooth animations
+- **React Router** for client-side routing
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Building for Production
 
-### Code Splitting
+```bash
+npm run build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The production build will be in the `dist/` directory.
 
-### Analyzing the Bundle Size
+## API Integration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The frontend communicates with the backend API. Ensure the API is running on the port specified in your `.env` file (default: `http://localhost:3000`).
 
-### Making a Progressive Web App
+See `assignment-api/README.md` for backend setup and API documentation.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Browser Support
 
-### Advanced Configuration
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**Note:** Real-time voice features require a modern browser with Web Audio API support.
