@@ -36,7 +36,7 @@ const Register = () => {
 
     const result = await register(formData);
     if (result.success) {
-      navigate("/interviews");
+      navigate("/interview");
     } else {
       setError(result.error);
     }

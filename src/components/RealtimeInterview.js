@@ -635,30 +635,6 @@ export default function RealtimeInterview() {
     }
   }, [transcript]);
 
-  // Auto-end interview when all questions are answered
-  useEffect(() => {
-    if (
-      currentStep === "active" &&
-      questionsAnswered > 0 &&
-      questionsAnswered >= totalQuestions &&
-      canEndInterview &&
-      status !== "idle"
-    ) {
-      // Small delay to ensure the last evaluation is processed
-      const timer = setTimeout(() => {
-        stopInterview();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [
-    questionsAnswered,
-    totalQuestions,
-    canEndInterview,
-    currentStep,
-    status,
-    stopInterview,
-  ]);
-
   // Move to active step when interview starts
   useEffect(() => {
     if (
@@ -671,20 +647,53 @@ export default function RealtimeInterview() {
     }
   }, [status, currentStep]);
 
-  // Move to done step when interview completes
+  // Auto-transition to done when all questions are answered
   useEffect(() => {
-    // Check if interview is complete: status is idle, we were active, and all questions are answered
+    if (
+      currentStep === "active" &&
+      questionsAnswered > 0 &&
+      totalQuestions > 0 &&
+      questionsAnswered >= totalQuestions &&
+      canEndInterview
+    ) {
+      console.log(
+        "[RealtimeInterview] All questions answered, transitioning to done step"
+      );
+      // Transition to done step first
+      setCurrentStep("done");
+      setWasInterviewActive(false);
+
+      // Then stop the interview after a short delay
+      const timer = setTimeout(() => {
+        stopInterview();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    questionsAnswered,
+    totalQuestions,
+    canEndInterview,
+    currentStep,
+    stopInterview,
+  ]);
+
+  // Fallback: Move to done step when interview completes (if status becomes idle)
+  useEffect(() => {
     if (
       status === "idle" &&
       wasInterviewActive &&
       currentStep === "active" &&
       questionsAnswered > 0 &&
+      totalQuestions > 0 &&
       questionsAnswered >= totalQuestions
     ) {
+      console.log(
+        "[RealtimeInterview] Interview completed, transitioning to done step"
+      );
       setTimeout(() => {
         setCurrentStep("done");
         setWasInterviewActive(false);
-      }, 500); // Small delay to ensure state is settled
+      }, 500);
     }
   }, [
     status,
@@ -693,21 +702,6 @@ export default function RealtimeInterview() {
     questionsAnswered,
     totalQuestions,
   ]);
-
-  // Also check canEndInterview as a trigger
-  useEffect(() => {
-    if (
-      canEndInterview &&
-      currentStep === "active" &&
-      status === "idle" &&
-      wasInterviewActive
-    ) {
-      setTimeout(() => {
-        setCurrentStep("done");
-        setWasInterviewActive(false);
-      }, 500);
-    }
-  }, [canEndInterview, currentStep, status, wasInterviewActive]);
 
   const handleContinue = () => {
     if (selectedSkills.length > 0) {
@@ -726,7 +720,7 @@ export default function RealtimeInterview() {
 
   const handleGoToHome = () => {
     // Navigate to interviews dashboard
-    navigate("/interviews");
+    navigate("/interview");
   };
 
   const handleStartNew = () => {

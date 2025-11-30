@@ -102,16 +102,6 @@ function App() {
                 }
               />
               <Route
-                path="/interviews"
-                element={
-                  <ProtectedRoute>
-                    <ProtectedLayout>
-                      <InterviewDashboard />
-                    </ProtectedLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/interview"
                 element={
                   <ProtectedRoute>
