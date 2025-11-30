@@ -187,92 +187,12 @@ export default function Evaluations() {
 
       {/* Totals Section */}
       <div className="mb-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-lg mb-lg">
-          {/* Total Evaluations */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-lg border border-primary/20 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-md justify-self-center">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-primary" strokeWidth={2} />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-xs">
-              {stats.totalEvaluations}
-            </div>
-            <div className="text-sm font-medium text-gray-600">
-              Total Evaluations
-            </div>
-          </motion.div>
-
-          {/* Average Score */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-gradient-to-br from-success/10 to-success/5 rounded-xl p-lg border border-success/20 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-md justify-self-center">
-              <div className="w-12 h-12 bg-success/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-success" strokeWidth={2} />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-xs">
-              {stats.averageScore.toFixed(1)}
-            </div>
-            <div className="text-sm font-medium text-gray-600">
-              Average Score
-            </div>
-          </motion.div>
-
-          {/* Total Sessions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-info/10 to-info/5 rounded-xl p-lg border border-info/20 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-md justify-self-center">
-              <div className="w-12 h-12 bg-info/20 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-info" strokeWidth={2} />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-xs">
-              {stats.totalSessions}
-            </div>
-            <div className="text-sm font-medium text-gray-600">
-              Total Sessions
-            </div>
-          </motion.div>
-
-          {/* Recent Activity */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="bg-gradient-to-br from-warning/10 to-warning/5 rounded-xl p-lg border border-warning/20 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-md justify-self-center">
-              <div className="w-12 h-12 bg-warning/20 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-warning" strokeWidth={2} />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-xs">
-              {stats.recentEvaluations}
-            </div>
-            <div className="text-sm font-medium text-gray-600">This Week</div>
-          </motion.div>
-        </div>
-
         {/* Score Distribution */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl p-lg border border-gray-200 shadow-sm"
+          className="bg-white rounded-xl p-lg"
         >
           <h2 className="text-xl font-semibold text-gray-900 mb-lg">
             Score Distribution
