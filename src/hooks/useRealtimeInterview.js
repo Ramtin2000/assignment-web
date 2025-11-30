@@ -175,20 +175,11 @@ export function useRealtimeInterview() {
             }),
             strict: true,
             execute: async ({ question, answer, score, feedback }) => {
-              console.log("[Tool] evaluate_answer called:", {
-                question: question?.substring(0, 50) + "...",
-                answer: answer?.substring(0, 50) + "...",
-                score,
-                feedback: feedback?.substring(0, 50) + "...",
-                sessionId: sessionIdRef.current,
-              });
-
               // Mark that evaluation is in progress - next assistant message should be filtered
               evaluationInProgressRef.current = true;
 
               if (sessionIdRef.current) {
                 try {
-                  console.log("[Tool] Calling backend to log evaluation...");
                   const result = await realtimeInterviewService.logEvaluation(
                     sessionIdRef.current,
                     question,
@@ -196,7 +187,6 @@ export function useRealtimeInterview() {
                     score,
                     feedback
                   );
-                  console.log("[Tool] Evaluation logged successfully:", result);
 
                   // Update questions answered count
                   setQuestionsAnswered((prev) => {
@@ -205,13 +195,7 @@ export function useRealtimeInterview() {
                       skillsRef.current.length * 2
                     );
                     const totalQuestions = skillsRef.current.length * 2;
-                    console.log(
-                      `[Tool] Updating questionsAnswered: ${prev} -> ${newCount} (total: ${totalQuestions})`
-                    );
                     if (newCount >= totalQuestions) {
-                      console.log(
-                        "[Tool] All questions answered, enabling end interview"
-                      );
                       setCanEndInterview(true);
                     }
                     return newCount;
@@ -225,7 +209,6 @@ export function useRealtimeInterview() {
 
                   return { success: true, message: "Evaluation saved" };
                 } catch (err) {
-                  console.error("[Tool] Failed to log evaluation:", err);
                   return {
                     success: false,
                     error: err.message || "Failed to save evaluation",
@@ -248,18 +231,11 @@ export function useRealtimeInterview() {
             parameters: z.object({}),
             strict: true,
             execute: async () => {
-              console.log("[Tool] signal_interview_complete called");
-
               if (sessionIdRef.current) {
                 try {
-                  console.log("[Tool] Completing interview session...");
                   await realtimeInterviewService.completeSession(
                     sessionIdRef.current
                   );
-                  console.log(
-                    "[Tool] Interview session completed successfully"
-                  );
-
                   setCanEndInterview(true);
                   setStatus("idle");
 
@@ -268,7 +244,6 @@ export function useRealtimeInterview() {
                     message: "Interview completed successfully",
                   };
                 } catch (err) {
-                  console.error("[Tool] Failed to complete interview:", err);
                   return {
                     success: false,
                     error: err.message || "Failed to complete interview",
@@ -293,10 +268,6 @@ export function useRealtimeInterview() {
         model: "gpt-realtime-mini-2025-10-06",
       });
 
-      console.log(
-        "[RealtimeSession] Session created - user transcription should be enabled by default"
-      );
-
       sessionRef.current = realtimeSession;
 
       // Set up event listeners with debugging and fallbacks
@@ -305,7 +276,6 @@ export function useRealtimeInterview() {
         // Primary event listener for transcript deltas - CORRECT EVENT NAME
         // This event is for ASSISTANT speech only (has responseId)
         transport.on("audio_transcript_delta", (event) => {
-          console.log("[Transport] audio_transcript_delta event:", event);
           const { delta, responseId, itemId } = event;
 
           if (delta && responseId) {
@@ -320,34 +290,16 @@ export function useRealtimeInterview() {
             if (isNewMessage) {
               currentResponseIdRef.current = responseId;
               currentItemIdRef.current = itemId;
-              console.log(
-                "[Transport] New assistant message started:",
-                responseId
-              );
             }
-
-            console.log(
-              `[Transport] Received delta for ${role}:`,
-              delta.substring(0, 50),
-              `responseId: ${responseId}, itemId: ${itemId}`
-            );
 
             // Update live speech display (only for current speaking)
             setLiveAssistantSpeech((prev) => {
               // If new message, start fresh (clear previous)
               if (isNewMessage) {
-                console.log(
-                  "[Transport] Starting new liveAssistantSpeech:",
-                  delta.substring(0, 50)
-                );
                 return delta;
               } else {
                 // Continue existing message
                 const updated = prev + delta;
-                console.log(
-                  "[Transport] Updated liveAssistantSpeech:",
-                  updated.substring(0, 50)
-                );
                 return updated;
               }
             });
@@ -387,10 +339,6 @@ export function useRealtimeInterview() {
                 );
 
                 if (containsEvaluation) {
-                  console.log(
-                    "[Transport] Filtered evaluation message:",
-                    newText.substring(0, 50)
-                  );
                   return prev; // Don't add evaluation messages to transcript
                 }
               }
@@ -409,9 +357,6 @@ export function useRealtimeInterview() {
                   lastMessage.role === "user" &&
                   !lastMessage.final
                 ) {
-                  console.log(
-                    "[Transport] User message in progress, keeping it and adding assistant message"
-                  );
                   // Finalize the user message first, then add assistant message
                   return [
                     ...prev.slice(0, -1),
@@ -465,12 +410,6 @@ export function useRealtimeInterview() {
               }
             });
           } else if (delta && !responseId) {
-            // This might be user speech coming through audio_transcript_delta
-            // Handle it as user speech
-            console.log(
-              "[Transport] audio_transcript_delta without responseId (user speech?):",
-              event
-            );
             // User speech should come through input_audio_buffer.transcript.delta
             // But we'll log it for debugging
           } else {
@@ -484,11 +423,6 @@ export function useRealtimeInterview() {
         // Listen for user input audio transcription events
         // User speech comes through input_audio_buffer events
         transport.on("input_audio_buffer.transcript.delta", (event) => {
-          console.log(
-            "[Transport] input_audio_buffer.transcript.delta event:",
-            event
-          );
-
           // Validate event structure
           if (!event) {
             console.warn(
@@ -507,33 +441,18 @@ export function useRealtimeInterview() {
           }
 
           if (delta.trim().length === 0) {
-            console.log(
-              "[Transport] input_audio_buffer.transcript.delta: empty delta, skipping"
-            );
             return;
           }
-
-          console.log(
-            "[Transport] User speech delta received:",
-            delta.substring(0, 100)
-          );
 
           // Update live user speech
           setLiveUserSpeech((prev) => {
             const updated = prev + delta;
-            console.log(
-              "[Transport] Updated liveUserSpeech from input:",
-              updated.substring(0, 100)
-            );
+
             return updated;
           });
 
           // Block user input if assistant is speaking
           if (isAssistantSpeakingRef.current) {
-            console.log(
-              "[Transport] User speech input blocked - assistant is speaking. Delta ignored:",
-              delta.substring(0, 50)
-            );
             return;
           }
 
@@ -548,10 +467,6 @@ export function useRealtimeInterview() {
               lastMessage.role !== role ||
               lastMessage.final
             ) {
-              console.log(
-                "[Transport] Creating new user message in transcript:",
-                delta.substring(0, 50)
-              );
               return [
                 ...prev,
                 {
@@ -563,10 +478,7 @@ export function useRealtimeInterview() {
             } else {
               // Continue existing user message
               const updatedText = lastMessage.text + delta;
-              console.log(
-                "[Transport] Continuing user message:",
-                updatedText.substring(0, 100)
-              );
+
               return [
                 ...prev.slice(0, -1),
                 {
@@ -581,24 +493,17 @@ export function useRealtimeInterview() {
 
         // Listen for user speech started to clear previous speech and start new message
         transport.on("input_audio_buffer.speech_started", () => {
-          console.log("[Transport] User speech started");
           setLiveUserSpeech("");
         });
 
         // Listen for user speech completed to finalize message
         transport.on("input_audio_buffer.speech_stopped", () => {
-          console.log("[Transport] User speech stopped");
-
           // Finalize any incomplete user message in transcript
           setTranscript((prev) => {
             const last = prev[prev.length - 1];
 
             // If we have an incomplete user message, finalize it
             if (last && last.role === "user" && !last.final) {
-              console.log(
-                "[Transport] Finalizing user message from transcript:",
-                last.text.substring(0, 100)
-              );
               return [...prev.slice(0, -1), { ...last, final: true }];
             }
 
@@ -623,9 +528,6 @@ export function useRealtimeInterview() {
                     // Check if there's an incomplete message to replace
                     const last = prevTranscript[prevTranscript.length - 1];
                     if (last && last.role === "user" && !last.final) {
-                      console.log(
-                        "[Transport] Replacing incomplete user message with liveUserSpeech"
-                      );
                       return [
                         ...prevTranscript.slice(0, -1),
                         {
@@ -636,10 +538,6 @@ export function useRealtimeInterview() {
                       ];
                     }
 
-                    console.log(
-                      "[Transport] Fallback: Adding user message from liveUserSpeech:",
-                      currentLiveSpeech.substring(0, 100)
-                    );
                     return [
                       ...prevTranscript,
                       {
@@ -659,22 +557,13 @@ export function useRealtimeInterview() {
 
         // Additional fallback: Listen for input_audio_buffer.transcript.done
         transport.on("input_audio_buffer.transcript.done", (event) => {
-          console.log("[Transport] input_audio_buffer.transcript.done:", event);
-
           // Block user input if assistant is speaking
           if (isAssistantSpeakingRef.current) {
-            console.log(
-              "[Transport] User transcription done blocked - assistant is speaking"
-            );
             return;
           }
 
           if (event.transcript) {
             const userText = event.transcript;
-            console.log(
-              "[Transport] User transcription done (from done event):",
-              userText.substring(0, 100)
-            );
 
             setTranscript((prev) => {
               // Check for duplicates
@@ -686,9 +575,6 @@ export function useRealtimeInterview() {
               );
 
               if (exists) {
-                console.log(
-                  "[Transport] User message already exists, skipping"
-                );
                 return prev;
               }
 
@@ -725,26 +611,13 @@ export function useRealtimeInterview() {
         transport.on(
           "conversation.item.input_audio_transcription.completed",
           (event) => {
-            console.log(
-              "[Transport] conversation.item.input_audio_transcription.completed:",
-              event
-            );
-
             // Block user input if assistant is speaking
             if (isAssistantSpeakingRef.current) {
-              console.log(
-                "[Transport] User transcription blocked - assistant is speaking. Transcript ignored:",
-                event.transcript?.substring(0, 50)
-              );
               return;
             }
 
             if (event.transcript) {
               const userText = event.transcript;
-              console.log(
-                "[Transport] User transcription completed:",
-                userText.substring(0, 100)
-              );
 
               // Add user message to transcript
               setTranscript((prev) => {
@@ -757,9 +630,6 @@ export function useRealtimeInterview() {
                 );
 
                 if (existingIndex >= 0) {
-                  console.log(
-                    "[Transport] User message already exists, skipping duplicate"
-                  );
                   return prev;
                 }
 
@@ -770,9 +640,6 @@ export function useRealtimeInterview() {
                   lastMessage.role === "user" &&
                   !lastMessage.final
                 ) {
-                  console.log(
-                    "[Transport] Replacing incomplete user message with final transcription"
-                  );
                   return [
                     ...prev.slice(0, -1),
                     {
@@ -784,9 +651,6 @@ export function useRealtimeInterview() {
                 }
 
                 // Add new user message
-                console.log(
-                  "[Transport] Adding new user message to transcript"
-                );
                 return [
                   ...prev,
                   {
@@ -802,12 +666,7 @@ export function useRealtimeInterview() {
 
         // Listen for conversation item creation
         transport.on("conversation.item.created", (event) => {
-          console.log("[Transport] conversation.item.created:", event);
           if (event.item && event.item.type === "message") {
-            console.log(
-              "[Transport] New conversation item created:",
-              event.item
-            );
             // This can help us track when user messages are being created
           }
         });
@@ -822,14 +681,10 @@ export function useRealtimeInterview() {
               eventName.includes("conversation") ||
               eventName.includes("input_audio"))
           ) {
-            console.log(`[Transport] Event: ${eventName}`, event);
           }
         });
 
         transport.on("response_started", () => {
-          console.log(
-            "[Transport] Response started - new assistant message beginning"
-          );
           isAssistantSpeakingRef.current = true;
           setIsAssistantSpeaking(true);
           setCurrentQuestion(null);
@@ -840,7 +695,6 @@ export function useRealtimeInterview() {
         });
 
         transport.on("response_completed", () => {
-          console.log("[Transport] Response completed");
           isAssistantSpeakingRef.current = false;
           setIsAssistantSpeaking(false);
           setLiveAssistantSpeech(""); // Clear live speech when response completes - prevent duplication
@@ -853,10 +707,6 @@ export function useRealtimeInterview() {
                   { ...last, final: true },
                 ];
                 setCurrentQuestion(last.text);
-                console.log(
-                  "[Transport] Updated current question:",
-                  last.text.substring(0, 50)
-                );
                 return updated;
               }
             }
@@ -865,13 +715,11 @@ export function useRealtimeInterview() {
         });
 
         transport.on("user_speech_started", () => {
-          console.log("[Transport] User speech started");
           setStatus("listening");
           setLiveUserSpeech(""); // Clear previous live speech when new speech starts
         });
 
         transport.on("user_speech_stopped", () => {
-          console.log("[Transport] User speech stopped");
           setStatus("active");
           setLiveUserSpeech(""); // Clear live speech when user stops speaking
         });
@@ -933,27 +781,16 @@ export function useRealtimeInterview() {
 
       // Listen for session ready event and trigger agent to start
       realtimeSession.on("session_updated", (event) => {
-        console.log("[Interview] Session updated:", event);
         if (event.session?.status === "ready") {
-          console.log(
-            "[Interview] Session is ready, agent should start speaking..."
-          );
         }
       });
 
       // Also listen on transport for session updates and response events
       if (transport) {
-        transport.on("session_updated", (event) => {
-          console.log("[Transport] Session updated:", event);
-        });
+        transport.on("session_updated", (event) => {});
 
         // Note: response_started is already handled above in the transport event listeners
       }
-
-      // Log that everything is set up
-      console.log(
-        "[Interview] All event listeners set up. Agent should start speaking based on instructions."
-      );
     } catch (err) {
       console.error("Failed to start interview:", err);
       setError(err.message || "Failed to start interview");

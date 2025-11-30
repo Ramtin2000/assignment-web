@@ -40,10 +40,6 @@ export const authService = {
     const response = await api.post("/auth/login", { email, password });
     if (response.data.access_token) {
       localStorage.setItem("token", response.data.access_token);
-      console.log(
-        "Token saved to localStorage:",
-        response.data.access_token.substring(0, 20) + "..."
-      );
     } else {
       console.error("No access_token in response:", response.data);
     }
@@ -54,10 +50,6 @@ export const authService = {
     const response = await api.post("/auth/register", userData);
     if (response.data.access_token) {
       localStorage.setItem("token", response.data.access_token);
-      console.log(
-        "Token saved to localStorage:",
-        response.data.access_token.substring(0, 20) + "..."
-      );
     } else {
       console.error("No access_token in response:", response.data);
     }

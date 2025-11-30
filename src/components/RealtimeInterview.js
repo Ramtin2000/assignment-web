@@ -635,13 +635,6 @@ export default function RealtimeInterview() {
     }
   }, [transcript]);
 
-  // Debug: Log when questionsAnswered changes
-  useEffect(() => {
-    console.log(
-      `[RealtimeInterview] questionsAnswered updated: ${questionsAnswered} / ${totalQuestions}`
-    );
-  }, [questionsAnswered, totalQuestions]);
-
   // Auto-end interview when all questions are answered
   useEffect(() => {
     if (
@@ -651,9 +644,6 @@ export default function RealtimeInterview() {
       canEndInterview &&
       status !== "idle"
     ) {
-      console.log(
-        `[RealtimeInterview] All questions answered! Auto-ending interview.`
-      );
       // Small delay to ensure the last evaluation is processed
       const timer = setTimeout(() => {
         stopInterview();
@@ -691,9 +681,6 @@ export default function RealtimeInterview() {
       questionsAnswered > 0 &&
       questionsAnswered >= totalQuestions
     ) {
-      console.log(
-        `[RealtimeInterview] Interview complete! Moving to done step. Questions: ${questionsAnswered}/${totalQuestions}`
-      );
       setTimeout(() => {
         setCurrentStep("done");
         setWasInterviewActive(false);
@@ -715,9 +702,6 @@ export default function RealtimeInterview() {
       status === "idle" &&
       wasInterviewActive
     ) {
-      console.log(
-        `[RealtimeInterview] canEndInterview is true, moving to done step`
-      );
       setTimeout(() => {
         setCurrentStep("done");
         setWasInterviewActive(false);
