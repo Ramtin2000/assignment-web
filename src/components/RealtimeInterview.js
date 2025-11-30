@@ -719,8 +719,8 @@ export default function RealtimeInterview() {
   };
 
   const handleGoToHome = () => {
-    // Navigate to interviews dashboard
-    navigate("/interview");
+    // Navigate to evaluations dashboard
+    navigate("/evaluations");
   };
 
   const handleStartNew = () => {
