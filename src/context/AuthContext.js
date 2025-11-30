@@ -19,16 +19,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const storedToken = localStorage.getItem("token");
-      console.log(
-        "Init auth - Stored token:",
-        storedToken ? storedToken.substring(0, 20) + "..." : "none"
-      );
+
       if (storedToken) {
         try {
           const profile = await authService.getProfile();
           setUser(profile);
           setToken(storedToken);
-          console.log("Init auth - Token validated successfully");
         } catch (error) {
           console.error(
             "Init auth - Failed to validate token, removing:",
@@ -49,16 +45,12 @@ export const AuthProvider = ({ children }) => {
       await authService.login(email, password);
       // Token is already saved in localStorage by authService.login
       const savedToken = localStorage.getItem("token");
-      console.log(
-        "Login - Token retrieved from localStorage:",
-        savedToken ? "exists" : "missing"
-      );
+
       if (savedToken) {
         setToken(savedToken);
         try {
           const profile = await authService.getProfile();
           setUser(profile);
-          console.log("Login - Profile fetched successfully");
         } catch (profileError) {
           console.error("Failed to fetch profile:", profileError);
         }
@@ -79,16 +71,11 @@ export const AuthProvider = ({ children }) => {
       await authService.register(userData);
       // Token is already saved in localStorage by authService.register
       const savedToken = localStorage.getItem("token");
-      console.log(
-        "Register - Token retrieved from localStorage:",
-        savedToken ? "exists" : "missing"
-      );
       if (savedToken) {
         setToken(savedToken);
         try {
           const profile = await authService.getProfile();
           setUser(profile);
-          console.log("Register - Profile fetched successfully");
         } catch (profileError) {
           console.error("Failed to fetch profile:", profileError);
         }

@@ -1,487 +1,305 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import { interviewService } from "../services/api.service";
-import {
-  DashboardContainer,
-  DashboardContent,
-  DashboardCard,
-  DashboardHeader,
-  DashboardTitle,
-  DashboardSubtitle,
-  CardTitle,
-  CardSubtitle,
-  CardBody,
-  ScoreBadge,
-  Loading,
-  Error,
-  MetricsCard,
-} from "./ui";
-import styled from "styled-components";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { itemVariants } from "./ui";
+import { realtimeInterviewService } from "../services/api.service";
+import { Loading } from "./ui/Loading";
+import { Error } from "./ui/Error";
+import { BackButton } from "./ui/BackButton";
+import {
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  MessageSquare,
+  Calendar,
+  Hash,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
-const ScoreCard = styled(DashboardCard)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-`;
+const getScoreColor = (score) => {
+  if (score >= 8) return "text-success";
+  if (score >= 5) return "text-warning";
+  return "text-danger";
+};
 
-const ScoreContent = styled.div`
-  flex: 1;
-`;
+const getScoreBgColor = (score) => {
+  if (score >= 8) return "bg-success/20 text-success border-success/30";
+  if (score >= 5) return "bg-warning/20 text-warning border-warning/30";
+  return "bg-danger/20 text-danger border-danger/30";
+};
 
-const ScoreValue = styled(ScoreBadge)`
-  font-size: 2rem;
-  padding: ${(props) => `${props.theme.spacing.md} ${props.theme.spacing.lg}`};
-  font-weight: 700;
-`;
+const getScoreIcon = (score) => {
+  if (score >= 8) return CheckCircle2;
+  if (score >= 5) return AlertCircle;
+  return XCircle;
+};
 
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[900]};
-  margin: 0 0 ${(props) => props.theme.spacing.md} 0;
-`;
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
-const RecommendationsCard = styled(DashboardCard)`
-  background: ${(props) => props.theme.colors.info}15;
-  border: 1px solid ${(props) => props.theme.colors.info}40;
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-`;
-
-const RecommendationsTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.info};
-  margin: 0 0 ${(props) => props.theme.spacing.md} 0;
-`;
-
-const RecommendationsList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.sm};
-`;
-
-const RecommendationItem = styled.li`
-  display: flex;
-  align-items: flex-start;
-  color: ${(props) => props.theme.colors.info};
-  font-size: 1rem;
-
-  &::before {
-    content: "•";
-    margin-right: ${(props) => props.theme.spacing.sm};
-    font-weight: bold;
-  }
-`;
-
-const QuestionCard = styled(DashboardCard)`
-  overflow: hidden;
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-  text-align: left;
-`;
-
-const QuestionHeader = styled.div`
-  padding: ${(props) => props.theme.spacing.lg};
-  border-bottom: 1px solid ${(props) => props.theme.colors.gray[200]};
-  text-align: left;
-`;
-
-const QuestionHeaderContent = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: ${(props) => props.theme.spacing.md};
-`;
-
-const QuestionNumber = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[900]};
-  margin: 0;
-`;
-
-const QuestionText = styled.p`
-  font-size: 1rem;
-  color: ${(props) => props.theme.colors.gray[700]};
-  line-height: 1.6;
-  margin: 0;
-  text-align: left;
-`;
-
-const AnswerSection = styled.div`
-  padding: ${(props) => props.theme.spacing.lg};
-  border-bottom: 1px solid ${(props) => props.theme.colors.gray[200]};
-  background: ${(props) => props.theme.colors.gray[100]};
-  text-align: left;
-`;
-
-const SectionLabel = styled.h4`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.colors.gray[700]};
-  margin: 0 0 ${(props) => props.theme.spacing.sm} 0;
-  text-align: left;
-`;
-
-const AnswerText = styled.p`
-  font-size: 1rem;
-  color: ${(props) => props.theme.colors.gray[600]};
-  line-height: 1.6;
-  margin: 0;
-  text-align: left;
-`;
-
-const FeedbackSection = styled.div`
-  padding: ${(props) => props.theme.spacing.lg};
-  text-align: left;
-`;
-
-const FeedbackText = styled.p`
-  font-size: 1rem;
-  color: ${(props) => props.theme.colors.gray[700]};
-  line-height: 1.6;
-  margin: 0 0 ${(props) => props.theme.spacing.md} 0;
-  text-align: left;
-`;
-
-const StrengthsList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0 0 ${(props) => props.theme.spacing.md} 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-`;
-
-const StrengthItem = styled.li`
-  display: flex;
-  align-items: flex-start;
-  color: ${(props) => props.theme.colors.success};
-  font-size: 1rem;
-
-  &::before {
-    content: "✓";
-    margin-right: ${(props) => props.theme.spacing.sm};
-    font-weight: bold;
-  }
-`;
-
-const WeaknessesList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.xs};
-`;
-
-const WeaknessItem = styled.li`
-  display: flex;
-  align-items: flex-start;
-  color: ${(props) => props.theme.colors.danger};
-  font-size: 1rem;
-
-  &::before {
-    content: "•";
-    margin-right: ${(props) => props.theme.spacing.sm};
-    font-weight: bold;
-  }
-`;
-
-const StrengthsLabel = styled(SectionLabel)`
-  color: ${(props) => props.theme.colors.success};
-`;
-
-const WeaknessesLabel = styled(SectionLabel)`
-  color: ${(props) => props.theme.colors.danger};
-`;
-
-const QuestionsSection = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  gap: ${(props) => props.theme.spacing.lg};
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: ${(props) => props.theme.spacing.lg};
-  margin-bottom: ${(props) => props.theme.spacing.lg};
-`;
-
-const EvaluationDetail = () => {
-  const { id } = useParams();
+export default function EvaluationDetail() {
+  const { sessionId, qaId } = useParams();
+  const navigate = useNavigate();
   const [session, setSession] = useState(null);
-  const [answers, setAnswers] = useState([]);
+  const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    feedback: true,
+    sessionContext: false,
+  });
 
-  const fetchSession = useCallback(async () => {
+  useEffect(() => {
+    loadEvaluation();
+  }, [sessionId, qaId]);
+
+  const loadEvaluation = async () => {
     try {
       setLoading(true);
       setError(null);
-      const sessionData = await interviewService.getInterviewSession(id);
+      const sessionData = await realtimeInterviewService.getSession(sessionId);
       setSession(sessionData);
-    } catch (err) {
-      console.error("Error fetching session:", err);
-      setError("Failed to load session details");
-      setLoading(false);
-    }
-  }, [id]);
 
-  const fetchAnswers = useCallback(async () => {
-    if (!id) return;
-    try {
-      const data = await interviewService.getSessionAnswers(id);
-
-      // Sort by questionIndex
-      const sortedAnswers = data.sort(
-        (a, b) => a.questionIndex - b.questionIndex
-      );
-      setAnswers(sortedAnswers);
+      // Find the specific QA
+      const qa = sessionData.qas?.find((q) => q.id === qaId);
+      if (qa && qa.evaluation) {
+        setEvaluation({
+          ...qa,
+          sessionId: sessionData.id,
+          sessionDate: sessionData.createdAt,
+          sessionStatus: sessionData.status,
+        });
+      } else {
+        setError("Evaluation not found");
+      }
     } catch (err) {
-      console.error("Error fetching answers:", err);
-      setError("Failed to load session answers");
+      console.error("Failed to load evaluation:", err);
+      setError(err.message || "Failed to load evaluation");
     } finally {
       setLoading(false);
     }
-  }, [id]);
-
-  useEffect(() => {
-    fetchSession();
-  }, [fetchSession]);
-
-  useEffect(() => {
-    if (session) {
-      fetchAnswers();
-    }
-  }, [session, fetchAnswers]);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
-  if (loading || !session) {
-    return <Loading message="Loading evaluation details..." />;
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-[1200px] mx-auto p-lg">
+        <Loading message="Loading evaluation details..." />
+      </div>
+    );
   }
 
-  if (error) {
-    return <Error title="Error" message={error} />;
+  if (error || !evaluation) {
+    return (
+      <div className="max-w-[1200px] mx-auto p-lg">
+        <Error
+          message={error || "Evaluation not found"}
+          onBack={() => navigate(-1)}
+        />
+      </div>
+    );
   }
+
+  const ScoreIcon = getScoreIcon(evaluation.evaluation.score);
+  const otherQAs = session.qas?.filter((qa) => qa.id !== qaId) || [];
 
   return (
-    <DashboardContainer>
-      <DashboardContent maxWidth="1024px">
-        <DashboardHeader
-          initial={{ opacity: 0, y: -10 }}
+    <div className="max-w-[1200px] mx-auto p-lg text-left">
+      {/* Back Button */}
+      <div className="flex justify-start mb-md">
+        <BackButton onClick={() => navigate(-1)}>Back</BackButton>
+      </div>
+
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-xl"
+      >
+        <div className="flex items-start justify-between mb-lg">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 m-0 mb-sm">
+              Evaluation Details
+            </h1>
+            <p className="text-gray-600 text-lg m-0">
+              Review your answer and feedback
+            </p>
+          </div>
+          <div
+            className={`flex items-center gap-md px-lg py-md rounded-xl border-2 font-bold text-2xl ${getScoreBgColor(
+              evaluation.evaluation.score
+            )}`}
+          >
+            <ScoreIcon className="w-6 h-6" strokeWidth={2.5} />
+            <span>{evaluation.evaluation.score}/10</span>
+          </div>
+        </div>
+
+        {/* Session Info */}
+        <div className="flex flex-wrap items-center gap-md text-sm text-gray-600 bg-gray-50 rounded-lg p-md border border-gray-200 justify-start">
+          <div className="flex items-center gap-xs">
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(evaluation.sessionDate)}</span>
+          </div>
+          <span>•</span>
+          <div className="flex items-center gap-xs">
+            <Hash className="w-4 h-4" />
+            <span className="font-mono">
+              {evaluation.sessionId.substring(0, 8)}...
+            </span>
+          </div>
+          <span>•</span>
+          <div className="flex items-center gap-xs">
+            <MessageSquare className="w-4 h-4" />
+            <span>{session.qas?.length || 0} Q&As in session</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Question Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-lg border border-primary/20 shadow-sm mb-lg"
+      >
+        <h2 className="text-sm font-semibold text-primary uppercase tracking-wider mb-md flex items-center gap-xs">
+          <MessageSquare className="w-4 h-4" />
+          Question
+        </h2>
+        <p className="text-xl text-gray-900 leading-relaxed">
+          {evaluation.question}
+        </p>
+      </motion.div>
+
+      {/* Answer Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white rounded-xl p-lg border border-gray-200 shadow-sm mb-lg"
+      >
+        <h2 className="text-lg font-semibold text-gray-900 mb-md">
+          Your Answer
+        </h2>
+        <div className="bg-gray-50 rounded-lg p-md border border-gray-200">
+          <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+            {evaluation.answer || "No answer provided"}
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Feedback Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white rounded-xl border border-gray-200 shadow-sm mb-lg overflow-hidden"
+      >
+        <button
+          onClick={() => toggleSection("feedback")}
+          className="w-full flex items-center justify-between p-lg hover:bg-gray-50 transition-colors"
+        >
+          <h2 className="text-lg font-semibold text-gray-900">
+            Detailed Feedback
+          </h2>
+          {expandedSections.feedback ? (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
+        {expandedSections.feedback && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-lg pb-lg"
+          >
+            <div className="bg-gray-50 rounded-lg p-md border border-gray-200">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {evaluation.evaluation.feedback || "No feedback available"}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Session Context Section */}
+      {otherQAs.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ delay: 0.25 }}
+          className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
         >
-          <DashboardTitle>Interview Evaluation Details</DashboardTitle>
-          <DashboardSubtitle>
-            Completed: {formatDate(session.completedAt)}
-          </DashboardSubtitle>
-        </DashboardHeader>
-
-        <ScoreCard
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        >
-          <ScoreContent>
-            <CardTitle style={{ marginBottom: "0.5rem" }}>
-              Overall Score
-            </CardTitle>
-            <CardSubtitle>
-              Based on {session.evaluations?.length || 0} question
-              {session.evaluations?.length !== 1 ? "s" : ""}
-            </CardSubtitle>
-          </ScoreContent>
-          <ScoreValue score={session.overallScore || 0} size="lg">
-            {session.overallScore
-              ? `${session.overallScore.toFixed(1)}/10`
-              : "N/A"}
-          </ScoreValue>
-        </ScoreCard>
-
-        {(session.skillBreakdown ||
-          session.categoryBreakdown ||
-          session.performanceMetrics) && (
-          <MetricsGrid>
-            {session.skillBreakdown && session.skillBreakdown.length > 0 && (
-              <MetricsCard
-                title="Skill Breakdown"
-                items={session.skillBreakdown.map((item) => ({
-                  label: item.skill,
-                  averageScore: item.averageScore,
-                  questionCount: item.questionCount,
-                }))}
-              />
+          <button
+            onClick={() => toggleSection("sessionContext")}
+            className="w-full flex items-center justify-between p-lg hover:bg-gray-50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-gray-900">
+              Other Q&As in This Session ({otherQAs.length})
+            </h2>
+            {expandedSections.sessionContext ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
             )}
-
-            {session.categoryBreakdown &&
-              session.categoryBreakdown.length > 0 && (
-                <MetricsCard
-                  title="Category Breakdown"
-                  items={session.categoryBreakdown.map((item) => ({
-                    label: item.category,
-                    averageScore: item.averageScore,
-                    questionCount: item.questionCount,
-                  }))}
-                />
-              )}
-
-            {session.performanceMetrics && (
-              <DashboardCard>
-                <CardTitle style={{ marginBottom: "0.5rem" }}>
-                  Score Distribution
-                </CardTitle>
-                <CardBody>
+          </button>
+          {expandedSections.sessionContext && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="px-lg pb-lg"
+            >
+              <div className="flex flex-col gap-md">
+                {otherQAs.map((qa) => (
                   <div
-                    style={{
-                      display: "flex",
-                      gap: "1.5rem",
-                      fontSize: "0.9rem",
-                      color: "#4b5563",
-                    }}
+                    key={qa.id}
+                    onClick={() =>
+                      navigate(`/evaluations/${sessionId}/${qa.id}`)
+                    }
+                    className="p-md bg-gray-50 rounded-lg border border-gray-200 hover:border-primary/50 hover:bg-gray-100 cursor-pointer transition-all"
                   >
-                    <div>
-                      <strong>Min</strong>
-                      <div>{session.performanceMetrics.min.toFixed(1)}/10</div>
-                    </div>
-                    <div>
-                      <strong>Median</strong>
-                      <div>
-                        {session.performanceMetrics.median.toFixed(1)}/10
+                    <div className="flex items-start justify-between gap-md">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 mb-xs line-clamp-2">
+                          {qa.question}
+                        </p>
+                        {qa.evaluation && (
+                          <div
+                            className={`inline-flex items-center gap-xs px-sm py-xs rounded-lg border-2 font-semibold text-sm ${getScoreBgColor(
+                              qa.evaluation.score
+                            )}`}
+                          >
+                            <span>Score: {qa.evaluation.score}/10</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div>
-                      <strong>Max</strong>
-                      <div>{session.performanceMetrics.max.toFixed(1)}/10</div>
                     </div>
                   </div>
-                </CardBody>
-              </DashboardCard>
-            )}
-          </MetricsGrid>
-        )}
-
-        {session.summary && (
-          <DashboardCard
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.05, ease: "easeOut" }}
-            style={{ marginBottom: "1.5rem" }}
-          >
-            <CardTitle style={{ marginBottom: "0.75rem" }}>Summary</CardTitle>
-            <CardBody>{session.summary}</CardBody>
-          </DashboardCard>
-        )}
-
-        {session.recommendations && session.recommendations.length > 0 && (
-          <RecommendationsCard
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.1, ease: "easeOut" }}
-          >
-            <RecommendationsTitle>Recommendations</RecommendationsTitle>
-            <RecommendationsList>
-              {session.recommendations.map((recommendation, index) => (
-                <RecommendationItem key={index}>
-                  {recommendation}
-                </RecommendationItem>
-              ))}
-            </RecommendationsList>
-          </RecommendationsCard>
-        )}
-
-        <QuestionsSection
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2, delay: 0.15, ease: "easeOut" }}
-        >
-          <SectionTitle>Question-by-Question Evaluation</SectionTitle>
-
-          {answers.map((answer, index) => {
-            const evaluation = answer.evaluation;
-            if (!evaluation) return null;
-
-            return (
-              <QuestionCard
-                key={answer.id}
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: index * 0.03 }}
-              >
-                <QuestionHeader>
-                  <QuestionHeaderContent>
-                    <QuestionNumber>
-                      Question {answer.questionIndex + 1}
-                    </QuestionNumber>
-                    <ScoreBadge score={evaluation.score} size="md">
-                      {evaluation.score.toFixed(1)}/10
-                    </ScoreBadge>
-                  </QuestionHeaderContent>
-                  <QuestionText>{answer.questionText}</QuestionText>
-                </QuestionHeader>
-
-                <AnswerSection>
-                  <SectionLabel>Your Answer:</SectionLabel>
-                  <AnswerText>
-                    {answer.transcription || "No answer provided"}
-                  </AnswerText>
-                </AnswerSection>
-
-                <FeedbackSection>
-                  <SectionLabel>Feedback:</SectionLabel>
-                  <FeedbackText>{evaluation.feedback}</FeedbackText>
-
-                  {evaluation.strengths && evaluation.strengths.length > 0 && (
-                    <div>
-                      <StrengthsLabel>Strengths:</StrengthsLabel>
-                      <StrengthsList>
-                        {evaluation.strengths.map((strength, idx) => (
-                          <StrengthItem key={idx}>{strength}</StrengthItem>
-                        ))}
-                      </StrengthsList>
-                    </div>
-                  )}
-
-                  {evaluation.weaknesses &&
-                    evaluation.weaknesses.length > 0 && (
-                      <div>
-                        <WeaknessesLabel>
-                          Areas for Improvement:
-                        </WeaknessesLabel>
-                        <WeaknessesList>
-                          {evaluation.weaknesses.map((weakness, idx) => (
-                            <WeaknessItem key={idx}>{weakness}</WeaknessItem>
-                          ))}
-                        </WeaknessesList>
-                      </div>
-                    )}
-                </FeedbackSection>
-              </QuestionCard>
-            );
-          })}
-        </QuestionsSection>
-      </DashboardContent>
-    </DashboardContainer>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+    </div>
   );
-};
-
-export default EvaluationDetail;
+}

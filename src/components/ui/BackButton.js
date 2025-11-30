@@ -1,30 +1,5 @@
 import React from "react";
-import styled from "styled-components";
 import { motion } from "framer-motion";
-
-const BackButtonContainer = styled(motion.button)`
-  display: inline-flex;
-  align-items: center;
-  gap: ${(props) => props.theme.spacing.sm};
-  background: transparent;
-  border: none;
-  color: ${(props) => props.theme.colors.primary};
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: ${(props) => props.theme.spacing.sm};
-  margin-bottom: ${(props) => props.theme.spacing.md};
-  transition: all ${(props) => props.theme.transitions.fast};
-
-  &:hover {
-    color: ${(props) => props.theme.colors.primaryDark};
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-  }
-`;
 
 const BackIcon = () => (
   <svg
@@ -32,6 +7,7 @@ const BackIcon = () => (
     stroke="currentColor"
     viewBox="0 0 24 24"
     xmlns="http://www.w3.org/2000/svg"
+    className="w-5 h-5"
   >
     <path
       strokeLinecap="round"
@@ -42,18 +18,24 @@ const BackIcon = () => (
   </svg>
 );
 
-export const BackButton = ({ onClick, children = "Back", ...props }) => {
+export const BackButton = ({
+  onClick,
+  children = "Back",
+  className = "",
+  ...props
+}) => {
   return (
-    <BackButtonContainer
+    <motion.button
       onClick={onClick}
       whileHover={{ x: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.15 }}
+      className={`inline-flex items-center gap-sm bg-transparent border-none text-primary text-base font-medium cursor-pointer p-sm mb-md transition-all duration-fast hover:text-primaryDark text-left ${className}`.trim()}
       {...props}
     >
       <BackIcon />
       {children}
-    </BackButtonContainer>
+    </motion.button>
   );
 };
 

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -40,10 +40,6 @@ export const authService = {
     const response = await api.post("/auth/login", { email, password });
     if (response.data.access_token) {
       localStorage.setItem("token", response.data.access_token);
-      console.log(
-        "Token saved to localStorage:",
-        response.data.access_token.substring(0, 20) + "..."
-      );
     } else {
       console.error("No access_token in response:", response.data);
     }
@@ -54,10 +50,6 @@ export const authService = {
     const response = await api.post("/auth/register", userData);
     if (response.data.access_token) {
       localStorage.setItem("token", response.data.access_token);
-      console.log(
-        "Token saved to localStorage:",
-        response.data.access_token.substring(0, 20) + "..."
-      );
     } else {
       console.error("No access_token in response:", response.data);
     }
@@ -158,6 +150,44 @@ export const transcriptionService = {
   createTranscriptionSession: async () => {
     const response = await api.post("/transcription/session");
     return response.data.client_secret.value;
+  },
+};
+
+export const realtimeInterviewService = {
+  createSession: async () => {
+    const response = await api.post("/interview/session");
+    return response.data;
+  },
+
+  getToken: async (sessionId) => {
+    const response = await api.post("/interview/token", { sessionId });
+    return response.data;
+  },
+
+  logEvaluation: async (sessionId, question, answer, score, feedback) => {
+    const response = await api.post("/interview/log-evaluation", {
+      sessionId,
+      question,
+      answer,
+      score,
+      feedback,
+    });
+    return response.data;
+  },
+
+  getSession: async (sessionId) => {
+    const response = await api.get(`/interview/session/${sessionId}`);
+    return response.data;
+  },
+
+  completeSession: async (sessionId) => {
+    const response = await api.post(`/interview/session/${sessionId}/complete`);
+    return response.data;
+  },
+
+  getAllSessions: async () => {
+    const response = await api.get("/interview/sessions");
+    return response.data;
   },
 };
 
